@@ -12,30 +12,42 @@
 本包是一个 **DSH bundle**（`package.json` 的 `dsh.bundle.patch` 指向
 `cordis.patch.yml`，`dsh.client` 声明浏览器半侧），不需要构建、没有依赖。
 
-### 方式一：从 GitHub 安装（推荐）
+### 方式一：一行地址安装（不需要 Git，推荐）
 
-1. 打开 DSH 的 **设置 → 插件**，找到「安装插件」（输入安装源 / spec）的入口；
-2. 填入仓库地址，三选一：
+打开 DSH 的 **设置 → 插件 → 安装插件**（输入安装源 / spec 的地方），填：
 
-   ```
-   github:<你的用户名>/dsh-glass-ranswork
-   https://github.com/<你的用户名>/dsh-glass-ranswork
-   git+https://github.com/<你的用户名>/dsh-glass-ranswork.git
-   ```
+```
+https://github.com/rans725/dsh-glass-ranswork/archive/refs/heads/main.tar.gz
+```
 
-3. 安装完成后按提示**重启 DSH**（宿主半侧要重新加载；浏览器半侧会自动热更新）。
+装完按提示**重启 DSH**（宿主半侧要重新加载；浏览器半侧会热更新）。
 
-### 方式二：本地目录 / 压缩包
+> **为什么不用 `github:` 前缀**：安装器底层是 pnpm，解析 `github:` 依赖时会调用
+> 系统 `git`；Windows 上没装 Git 就会报
+> `git ls-remote failed: 'git' 不是内部或外部命令`。
+> 上面的 `tar.gz` 地址由 pnpm 直接下载解包，**不需要 Git**。
+> 装了 Git 的环境也可以用 `github:rans725/dsh-glass-ranswork`。
 
-把本仓库（或 Release 里的 zip）解压到任意目录，在同一个「安装插件」入口填
+### 方式二：Release 安装包（固定版本）
+
+到 [Releases](https://github.com/rans725/dsh-glass-ranswork/releases) 下载
+`dsh-glass-ranswork-1.0.0.tgz`，安装时填它的**本地路径**，或直接填资源地址：
+
+```
+https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.0/dsh-glass-ranswork-1.0.0.tgz
+```
+
+### 方式三：本地目录 / zip
+
+把 Release 里的 zip 解压到任意目录，在同一个「安装插件」入口填
 **该目录的绝对路径**，例如：
 
 ```
 D:\Plugins\dsh-glass-ranswork
 ```
 
-> 安装器用的是 pnpm：本地路径、git 地址、tarball 都支持；它会把依赖写进
-> 当前 profile 的 `package.json` 并激活 bundle，不需要手动改配置文件。
+> 安装器会把依赖写进当前 profile 的 `package.json` 并激活 bundle，
+> 不需要手动改配置文件。
 
 ### 兼容性
 
