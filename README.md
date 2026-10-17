@@ -7,6 +7,34 @@
 出厂默认即用户要的 **80% 半透明**（`opacity: 20`，即表面 20% 不透明）；
 **信息面板单独一档 `panelOpacity: 85`**，保证弹层和文件预览里的字看得清。
 
+## 快速开始
+
+> **Windows 没装 Git 也能装**：安装器底层是 pnpm，`github:` 前缀会调用系统
+> git；下面第一个地址是直接下载 tar.gz，不需要 Git。
+
+1. 打开 DSH → **设置 → 插件 → 安装插件**；
+2. 粘贴地址（三选一）：
+
+   **最新版（推荐，自动跟 main）**
+
+   ```
+   https://github.com/rans725/dsh-glass-ranswork/archive/refs/heads/main.tar.gz
+   ```
+
+   **固定版本 v1.0.0**
+
+   ```
+   https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.0/dsh-glass-ranswork-1.0.0.tgz
+   ```
+
+   **本地目录**：把仓库 zip（Code → Download ZIP）或 Release 的 `.tgz` 解压，
+   填含 `package.json` 的那层目录，例如 `D:\Plugins\dsh-glass-ranswork`。
+
+3. 装完按提示**重启 DSH**，打开 **设置 → 自定义主题** 即可调外观。
+
+> 升级：在插件管理器里重装一次即可（tar.gz 会重新拉最新 main）。
+> 详细说明见下方「安装」一节。
+
 ## 安装
 
 本包是一个 **DSH bundle**（`package.json` 的 `dsh.bundle.patch` 指向
@@ -39,8 +67,12 @@ https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.0/dsh-glass
 
 ### 方式三：本地目录 / zip
 
-把 Release 里的 zip 解压到任意目录，在同一个「安装插件」入口填
-**该目录的绝对路径**，例如：
+两种来源都可以：
+
+- 仓库页 **Code → Download ZIP**（解压后是 `dsh-glass-ranswork-main/`）；
+- 或 Release 里的 `dsh-glass-ranswork-1.0.0.tgz`（解压后是 `package/`）。
+
+把**含 `package.json` 的那一层目录**放到任意位置，在安装入口填它的绝对路径，例如：
 
 ```
 D:\Plugins\dsh-glass-ranswork
