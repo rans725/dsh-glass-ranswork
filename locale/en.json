@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Custom theme",
+    "description": "Custom theme: turns the whole interface into 80% translucent frosted glass, with a full settings page for opacity, blur, saturation, ambient light, palette, and a custom background image (fill, fit, stretch, tile, center, crop)."
+  }
+}

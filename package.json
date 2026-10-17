@@ -1,0 +1,47 @@
+{
+  "name": "dsh-glass-ranswork",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "自定义主题：给 DeepSeek Harness Web 界面加上「80% 半透明 + 背景模糊」的毛玻璃外观，并提供完整的主题设置页（透明度 / 模糊 / 饱和度 / 氛围光 / 配色 / 自定义背景图片）。",
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "dsh-bundle",
+    "deepseek-harness",
+    "theme",
+    "glass",
+    "glassmorphism",
+    "wallpaper"
+  ],
+  "icon": "./icon.svg",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md",
+    "locale/*.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-theme"
+      ]
+    }
+  }
+}

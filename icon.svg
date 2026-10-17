@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 毛玻璃：两块叠起来的半透明面板 + 高光 -->
+  <rect x="3" y="3.5" width="12.5" height="12.5" rx="3" opacity=".45"/>
+  <rect x="8.5" y="8" width="12.5" height="12.5" rx="3"/>
+  <path d="M11.2 10.8l6.2 6.2" opacity=".55"/>
+</svg>
