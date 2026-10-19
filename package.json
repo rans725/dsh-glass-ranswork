@@ -1,6 +1,6 @@
 {
   "name": "dsh-glass-ranswork",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "description": "自定义主题：给 DeepSeek Harness Web 界面加上「80% 半透明 + 背景模糊」的毛玻璃外观，并提供完整的主题设置页（透明度 / 模糊 / 饱和度 / 氛围光 / 配色 / 自定义背景图片）。",

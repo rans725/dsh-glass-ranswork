@@ -1470,10 +1470,85 @@ html[data-dsh-glass="mono"] body[data-ds-dark-theme] {
    !important 是必需的：这里要压过 CSS Modules 里同特异度的规则。 */
 html[data-dsh-glass] [class*="_frame"] { background-color: transparent !important; }
 
-/* ---------- 4. 表面模糊：把背后的氛围光真实模糊掉 ---------- */
+/* ---------- 4. 表面模糊：把背后的氛围光真实模糊掉（2026-10 改为「图层式」）----------
+
+   【本轮修的 bug：发送箭头悬停时发送框闪一下】
+   Filter Effects 2 §2.1 规定：backdrop-filter 非 none 的元素会**同时**建立
+     - 一个层叠上下文，以及
+     - **fixed / absolute 后代的包含块**。
+   宿主的 Tooltip 气泡（web-frontend 的 ._bubble_12mhf_1）是
+   position: fixed; z-index: 100，left/top 用 getBoundingClientRect 的
+   **视口坐标**直接写 px，而且默认 **portal: false**（InputBar 里的 Tooltip
+   都没传 portal）—— 它就挂在发送按钮旁边的 DOM 里。
+   于是整条祖先链（卡片 → seat → 中列）只要有一个是 backdrop root：
+     - 气泡的包含块变成那个祖先，被"祖先坐标 + 视口坐标"推飞（飞出窗口）；
+     - 气泡每次插入 / ResizeObserver 重定位 / 入场动画（.15s）都会让这个
+       backdrop root 失效，Chromium 必须重新采样并重绘整块毛玻璃 ——
+       表现就是「发送框闪一下」。
+
+   【为什么只在「输入法里有文字」时闪】
+   发送按钮的 disabled = empty || disabled || machineBusy || uploadsPending
+   （ui-conversation 的 InputBar），Tooltip 的 disabled 跟着它走；
+   disabled 时气泡**根本不渲染**。草稿一空 → 按钮禁用 → 不闪；
+   一旦有字（输入法未上屏的组字串也算非空）→ 按钮可用 → 悬停插入气泡 → 闪。
+
+   【做法：照抄宿主 MenuSurface 的图层写法】
+   宿主自己就是这么绕开的（web-frontend 的 ._surface_ri079_1{isolation:isolate}
+   + ._material_ri079_21{position:absolute;inset:0;z-index:-1;backdrop-filter}），
+   源码注释原文：keeps nested menus and fixed overlays free of an ancestor
+   backdrop root or a new fixed-position containing block。
+   这里同样把模糊挪到 ::before：
+     - 父元素只加 isolation: isolate —— 它**照样建立层叠上下文**，
+       所以子元素 z-index 的表现与改之前完全一致（不是"取消"了原来的层叠关系）；
+     - 模糊挂到 ::before（absolute + inset:0 + z-index:-1），父元素自身
+       backdrop-filter 保持 none → 不再是任何 fixed 后代的包含块。
+
+   【验证方式（真 Chrome，可复跑）】_tools/probe-backdrop-fixed.mjs
+   同一页面并排 4 种结构，读固定子元素的 getBoundingClientRect：
+     plain 无模糊        → (0,0)
+     父级直接挂 blur      → 被父级偏移 (240,80)   ← bug 复现
+     ::before 图层方案    → (0,0)                 ← 修法有效
+     列+卡片都挂 blur     → 偏移到最外层 (280,380) ← 改之前的真实状态
+   结论是实测的，不是推断。
+
+   【为什么 [data-shortcut-modal] 仍是直接挂】
+   实测（asar 扫描）这个属性挂在三类根上：设置面板 wCInkW_panel
+   （position: relative）、Modal 内容层 _dialog_o6lrb_33（relative）、
+   快捷键参考页的行内编辑器。它们的定位由宿主自己写，而且设置页内部
+   还有自己的 fixed 浮层（下拉、tooltip）—— 在没有逐个核对的前提下
+   给它们加 position: relative 风险大于收益。它们都不含发送框，
+   与本轮这个 bug 无关，所以保持原样（将来要改，按第 4 段的办法逐条验）。 */
+
+   【定位冲突的边界（别把 position: relative 到处撒）】
+   下面给 ::before 找的"锚"需要父元素是定位元素，所以补了 position: relative。
+   它只在宿主**没有**自己定位的地方生效：
+     - composerSeat 在活动态是 position: sticky（宿主选择器
+       .root[data-phase=active] .composerSeat，特异度 0,3,0）或
+       position: absolute（scrollBody:has(...) 那条，也是 0,3,0），
+       都高于本规则的 0,2,1 → 宿主的定位优先，不会被我们顶掉；
+     - _tabHost_ 上可能同时带 _float_（浮窗自身是 position: fixed），
+       所以那条明确 :not([class*="_float_"])，浮窗的定位绝不动。 */
+
 html[data-dsh-glass] [class*="_sidebarCol"],
 html[data-dsh-glass] [class*="_centerCol"],
-html[data-dsh-glass] [class*="_rightbarCol"],
+html[data-dsh-glass] [class*="_rightbarCol"] {
+  isolation: isolate;
+  position: relative;
+}
+
+html[data-dsh-glass] [class*="_sidebarCol"]::before,
+html[data-dsh-glass] [class*="_centerCol"]::before,
+html[data-dsh-glass] [class*="_rightbarCol"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(var(--dsh-glass-blur, 32px)) saturate(var(--dsh-glass-saturate, 180%));
+  backdrop-filter: blur(var(--dsh-glass-blur, 32px)) saturate(var(--dsh-glass-saturate, 180%));
+}
+
 html[data-dsh-glass] [data-shortcut-modal] {
   -webkit-backdrop-filter: blur(var(--dsh-glass-blur, 32px)) saturate(var(--dsh-glass-saturate, 180%));
   backdrop-filter: blur(var(--dsh-glass-blur, 32px)) saturate(var(--dsh-glass-saturate, 180%));
@@ -1505,12 +1580,25 @@ html[data-dsh-glass] [data-shortcut-modal] {
    'backdrop-filter' 会为 fixed/absolute 后代建立包含块（见 4b 段）。
    dockkit 的定位于 fixed 的浮窗（'_float_'）在 '_floatingCell_' 里，
    与 pane/tabHost 是**兄弟**关系（'_floatingCell_' 与 '_tabCell_' 同级），
-   不在这些元素的包含块链上。且 '_float_' 自己已在 4b 段有模糊。 */
+   不在这些元素的包含块链上。且 '_float_' 自己已在 4b 段有模糊。
+
+   【2026-10 说明：这里**故意没改**成图层式】
+   右栏内部也有 fixed 浮层（tab 菜单、Tooltip），理论上同一个坑也存在；
+   但 '_tabHost_' 里面装的是 dockkit 的**面板内容**（文件树、文档预览、
+   终端…），给它们加 position: relative 有可能改变这些内容里
+   absolute 元素的包含块 —— 那是另一类风险，而且与本轮这个 bug 无关。
+   所以这一段保持原样（直接挂 blur），只把 '_float_' 显式排除掉：
+   浮窗自己就是 position: fixed，不需要也不该拿这一档模糊
+   （它在 4b 段已经有浮层模糊了）。
+
+   【2026-10-19：saturate 从内层全部撤掉，只留三列】
+   原因见 4c 段的实测 —— backdrop-filter 逐层叠加，内层再 saturate 一次
+   会让右栏 / 预览比周围更艳。这一层现在只做 blur。 */
 html[data-dsh-glass] [data-dockkit-pane],
-html[data-dsh-glass] [class*="_tabHost_"],
+html[data-dsh-glass] [class*="_tabHost_"]:not([class*="_float_"]),
 html[data-dsh-glass] [class*="_emptyTabHost_"] {
-  -webkit-backdrop-filter: blur(var(--dsh-glass-overlay-blur, 32px)) saturate(var(--dsh-glass-saturate, 180%));
-  backdrop-filter: blur(var(--dsh-glass-overlay-blur, 32px)) saturate(var(--dsh-glass-saturate, 180%));
+  -webkit-backdrop-filter: blur(var(--dsh-glass-overlay-blur, 32px));
+  backdrop-filter: blur(var(--dsh-glass-overlay-blur, 32px));
 }
 
 /* ---------- 4b. 浮层模糊（本轮新增）----------
@@ -1650,7 +1738,17 @@ html[data-dsh-glass] [role="dialog"][aria-modal="true"] {
    它们的哈希前缀各不相同，逐个写死等于给自己埋升级雷；改用
    「[class*="_card"] + 同一底色」是做不到的（CSS 无法按背景值选元素），
    所以这里点名这 5 个已知前缀。将来新增同类卡片时，
-   退化结果只是「那张卡没模糊」，不会影响已覆盖的。 */
+   退化结果只是「那张卡没模糊」，不会影响已覆盖的。
+
+   【2026-10 改法：同样是「图层式」，因为这里正是闪烁的现场】
+   这一段覆盖的就是发送框 —— 它内部住着宿主 Tooltip 的 fixed 气泡。
+   直接给它挂 backdrop-filter，气泡的包含块就变成卡片，悬停发送箭头时
+   整块毛玻璃重新采样 → 闪。所以模糊挪到 ::before，卡片自身只留
+   isolation（层叠关系不变）。详见第 4 段的完整说明与实测数据。
+
+   【一个例外，别顺手一起改】
+   任何本身是 position:fixed 的元素都**不要**加 position: relative
+   （会顶掉它自己的 fixed）。所以这个列表里只放"静态定位的卡片"。 */
 
 html[data-dsh-glass] [data-composer-card],
 html[data-dsh-glass] [class*="EBLgjq_task"],
@@ -1660,50 +1758,112 @@ html[data-dsh-glass] [class*="P2izSq_card"],
 html[data-dsh-glass] [class*="mAtvLq_card"],
 html[data-dsh-glass] [class*="GjTS2W_card"],
 html[data-dsh-glass] [class*="KrzJGG_card"] {
-  -webkit-backdrop-filter: blur(var(--dsh-glass-composer-blur, 24px)) saturate(var(--dsh-glass-saturate, 180%));
-  backdrop-filter: blur(var(--dsh-glass-composer-blur, 24px)) saturate(var(--dsh-glass-saturate, 180%));
+  isolation: isolate;
+  position: relative;
 }
 
-/* ---------- 4d. composer 铺底模糊（2026-10 修正：只补模糊，绝不铺白底）----------
+html[data-dsh-glass] [class*="EBLgjq_task"]::before,
+html[data-dsh-glass] [class*="EBLgjq_member"]::before,
+html[data-dsh-glass] [class*="j_8BDW_card"]::before,
+html[data-dsh-glass] [class*="P2izSq_card"]::before,
+html[data-dsh-glass] [class*="mAtvLq_card"]::before,
+html[data-dsh-glass] [class*="GjTS2W_card"]::before,
+html[data-dsh-glass] [class*="KrzJGG_card"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  /* 【内层不加 saturate（2026-10-19 修正，别改回去）】
+     backdrop-filter 逐层叠加：列(saturate N%) → 卡片(N%)，
+     卡片里的实际饱和度是 N%²。用户把滑块拉到 200% 时是 400%，
+     发送框于是比旁边正文明显更艳 —— 用户原话
+     「发送框这一块的颜色和背景图对不上了」。
+     实测（_tools/probe-composer-tone.mjs，用真实壁纸量框内 vs 框外）：
+       内层也 saturate → RGB(196,244,255) vs (227,238,249)，Δ=31
+       只在列上 saturate → RGB(224,238,249) vs (227,238,249)，Δ=3
+     所以**饱和度只由最外层（三列 / 浮层）负责**，内层只做模糊。 */
+  -webkit-backdrop-filter: blur(var(--dsh-glass-composer-blur, 24px));
+  backdrop-filter: blur(var(--dsh-glass-composer-blur, 24px));
+}
 
-   【宿主的 composer 结构】
-     div[data-composer-seat]          ← 宿主在这里铺了一层渐变底
+/* 【发送框（[data-composer-card]）不在这张列表里 —— 由 4d 段单独声明】
+   原因：它的几何和别的输入区卡片不一样。它住在 '.RlGAzG_root' 里，
+   而那个容器有 'padding: 0 16px 4px'（= --dsh-composer-side-clearance），
+   所以卡片比它所在的 [data-composer-seat] **左右各窄 16px、底下矮 4px**。
+   模糊必须严格贴着卡片形状，否则就会在四周多出一圈磨砂
+   （用户原话：「发送框两边和底下周围还有一圈毛玻璃效果，优化掉」）。
+   详见 4d 段。 */
+
+/* ---------- 4d. composer 模糊：只挂在卡片自己身上（2026-10-19 第三修）----------
+
+   【宿主的 composer 结构 + 几何（这一版才核对对）】
+     div[data-composer-seat]              ← **整列宽**的矩形（活动态 sticky 在底部）
        └── .composerStack
-             ├── TodoPanel (.aSus8q_root)   ← 自带 backdrop-filter
-             └── [data-composer-card]        ← 发送框
-   卡片**之间还有一圈间隙**（卡片上方、清单与输入框之间、左右留白），
-   那圈间隙没有元素负责模糊 —— 它就是 'composerSeat' 自己的底色：
-     background: linear-gradient(180deg,
-       color-mix(in srgb, var(--dsw-alias-bg-base) 0%, transparent) 0px,
-       var(--dsw-alias-bg-base) 36px);
-   这层用的 '--dsw-alias-bg-base' 属于 SURFACES，本来就跟着「表面不透明度」
-   半透明；问题只是**没有模糊**，背后的正文才会清清楚楚地透出来。
-   所以这一段的全部职责就是补 blur —— 不写任何颜色。
+             ├── TodoPanel (.aSus8q_root) ← 自带 backdrop-filter
+             └── .RlGAzG_root            ← padding: 0 16px 4px
+                   └── [data-composer-card]  ← 真正那张卡片（有圆角）
 
-   【血泪教训：不要在这里铺白色底】
-   上一版为了"盖住背后的字"，给 composerSeat 和卡片逐层写了
-   'background: color-mix(白 N%)'（还配了一个 'composerOpacity' 滑块）。后果：
-     - 发送框的 background 被行内样式覆盖，不再跟随「表面不透明度」——
-       拖透明度滑块时它一动不动，用户看到的就是"发送框不半透明了"；
-     - composerSeat → composerStack → 卡片叠了三层白，越叠越实。
-   正确的分工：**模糊负责挡住字，颜色继续交给 token。**
-   发送框的底色是 '--dsw-specific-input-major'（同属 SURFACES），
-   与其余半透明表面共用同一个「表面不透明度」滑块。
+   关键几何：'--dsh-composer-side-clearance'（默认 16px）和底部 4px 是
+   '.RlGAzG_root' 的**内边距** → 卡片比 seat **左右各窄 16px、底下矮 4px**。
 
-   【为什么这里加 backdrop-filter 是安全的】
+   【用户报的 bug】
+   「发送框两边和底下周围还有一圈毛玻璃效果，优化掉」。
+   因为上一版把模糊挂在 seat 的 ::before 上，而它 'inset: 0' 铺的是
+   **整列矩形** → 卡片外那一圈（左右留白 + 底下 4px）也被糊了。
+   那块本来没有面色（4e 段把 seat 背景清成 transparent），
+   于是糊出来就是"看得见的一圈磨砂"，格外明显。
+
+   【修法：模糊只挂卡片的 ::before】
+   卡片带 'border-radius: inherit'，伪元素的形状天然就是那张胶囊卡 ——
+   模糊只出现在框内，一点都不会外溢。seat 不再承载任何模糊。
+
+   【为什么不能再挂回 seat】
+   那圈留白在 4e 段已经没有背景色，挂模糊等于凭空造出一层磨砂；
+   不挂的话它直接透出背景图，与页面其余部分一致 —— 这才是"没有框"的状态。
+
+   【为什么必须挂在 ::before 而不是卡片元素本身】
    'backdrop-filter' 会为 fixed/absolute 后代建立包含块（见 4b 段）。
-   composer 子树里唯一的 fixed 元素是 ContextMeter 的弹层
-   （'_2WTFBq_panel'），而它是 **createPortal 到 body** 的
-   （已核 'createPortal' 在该组件内为 true）→ 不在 composerSeat 的
-   包含块链上，不会被带偏。stat-dialog（'Xt1eiG_panel'）同理是弹层。
+   卡片里的 Tooltip 气泡是 position: fixed + 视口坐标
+   （web-frontend 的 '._bubble_*'，默认 portal: false），
+   挂在卡片元素上会把气泡推飞并引起闪烁（第 19 节的 bug）。
+   伪元素没有后代，永远不会成为任何元素的包含块 —— 这就是「图层式」的意义。
 
-   【为什么用 [data-composer-seat] 而不是 .Dc7zOa_composerSeat】
-   'data-composer-seat' 是宿主自己写在那个 div 上的稳定 data 属性
-   （实测 '"data-composer-seat": ""'），比哈希可靠。 */
+   【seat 为什么只留 isolation】
+   它要给卡片的 'z-index: -1' 垫层提供一个层叠上下文边界，
+   防止垫层掉到祖先背后。这个属性不建立包含块，也不影响 fixed 后代。 */
 
 html[data-dsh-glass] [data-composer-seat] {
-  -webkit-backdrop-filter: blur(var(--dsh-glass-composer-blur, 24px)) saturate(var(--dsh-glass-saturate, 180%));
-  backdrop-filter: blur(var(--dsh-glass-composer-blur, 24px)) saturate(var(--dsh-glass-saturate, 180%));
+  isolation: isolate;
+}
+
+/* 卡片是唯一承载模糊的层：形状 = 卡片自身（border-radius: inherit）。
+
+   【骨架不能省（2026-10-19 修）】
+   这一条最初只写了 backdrop-filter，漏了 content / position / inset /
+   z-index / border-radius / pointer-events。
+   **没有 content 的 ::before 根本不会生成** → 于是"发送框模糊"滑块
+   调到哪都没反应（变量写进去了，但没有伪元素去消费它）。
+   教训：从别处"摘出来单独声明"时，必须把**整条规则**一起搬，
+   不能只搬看着相关的那几行属性。 */
+html[data-dsh-glass] [data-composer-card]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(var(--dsh-glass-composer-blur, 24px));
+  backdrop-filter: blur(var(--dsh-glass-composer-blur, 24px));
+}
+
+/* 滑块调到 0 = 真关闭（不是 blur(0px)）。
+   为什么用属性开关而不是把变量写成 none：见 paint() 里的注释 ——
+   blur(none) 是非法值，会让整条声明被丢弃。 */
+html[data-dsh-glass][data-dsh-composer-blur="off"] [data-composer-card]::before {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* ---------- 4e. 发送框「零白底」（2026-10 第三修）----------
@@ -3086,8 +3246,19 @@ html[data-dsh-glass] body[data-ds-dark-theme] [class*="_emptyTabHost_"] {
         // 发送框 / 任务卡片模糊：独立一档（本轮新增）。
         // 它比浮层更"贴身"（卡片就在正文旁边），半径过大会让输入的字看着发飘，
         // 所以另给一个 40px 上限，并且默认值更低（24px）。
+        //
+        // 【0 = 真关闭，不是 blur(0px)】
+        // 滑块文案承诺"调到 0 关闭这两处的模糊"。注意 blur(0px) **不等于关闭**：
+        // 它仍是一个非 none 的 backdrop-filter —— 照样建合成层、照样让元素
+        // 成为 fixed 后代的包含块（第 19 节 Tooltip 被推飞的机制）。
+        // 但也不能把变量写成 `none`：CSS 里是 blur(var(--x))，
+        // 一旦 var 展开成 none 就成了 `blur(none)` —— **非法值，整条声明被丢弃**，
+        // 结果是"连模糊带垫层一起消失"，比 blur(0) 更糟。
+        // 所以用一个 data 属性做开关，CSS 里显式写 backdrop-filter: none。
         const composerBlur = blurOr('composerBlur');
         root.style.setProperty('--dsh-glass-composer-blur', `${Math.min(composerBlur, 40)}px`);
+        if (composerBlur <= 0) root.setAttribute('data-dsh-composer-blur', 'off');
+        else root.removeAttribute('data-dsh-composer-blur');
 
         // 【关键：带 token 引用的颜色变量必须写在 body 上，不能写 :root】
         // 宿主的 `--dsw-static-neutral-bluish-00/950` 定义在 **body** 的规则里
@@ -3192,9 +3363,18 @@ html[data-dsh-glass] body[data-ds-dark-theme] [class*="_emptyTabHost_"] {
         // 它不再跟随「表面不透明度」，拖滑块纹丝不动 —— 用户的原话是
         // "改透明度为什么给发送框变成不半透明了，我要的是可调节透明度"。
         // 挡住背后文字靠的是 blur，颜色必须留给 token。
+        //
+        // 【2026-10 再修正：行内**不许再写 backdrop-filter**（这条最关键）】
+        // 行内 backdrop-filter 会让这些元素重新变成 backdrop root，也就是
+        // 「fixed 后代的包含块」—— 正好把本轮修的闪烁又装回去；而且行内优先级
+        // 最高，CSS 段的 ::before 方案压不住它。所以这里改成：
+        //   1. 清掉旧版本（inline-v3 及更早）留下的行内 backdrop-filter；
+        //   2. 行内只写 isolation —— 不建立包含块，但保住原来的层叠上下文，
+        //      让 ::before(z-index:-1) 老实待在本元素内部；
+        //   3. 真正画模糊的是 CSS 里 ::before 那条规则（伪元素没法行内写）。
+        // 代价：行内兜底不再能覆盖"选择器没命中的层"。这是有意的取舍 ——
+        // 宁可某层没糊，也不能把 fixed 浮层（Tooltip）带偏。
         const paintComposer = () => {
-          const filter = `blur(${Math.min(composerBlur, 40)}px) saturate(${clamp(settings.saturate, RANGES.saturate)}%)`;
-
           // 【为什么要"从内容往上爬"而不是只取 [data-composer-seat]】
           // 实测/读源码确认 composer 区域至少有这几层：
           //   [data-composer-seat]  → .composerStack → (TodoPanel | [data-composer-card])
@@ -3224,12 +3404,17 @@ html[data-dsh-glass] body[data-ds-dark-theme] [class*="_emptyTabHost_"] {
           }
           for (const target of targets) {
             // 先清旧版本残留：inline-v2 曾给这些元素写过 background 与
-            // composer 白底变量，热替换后行内样式不会自己消失。
+            // composer 白底变量，inline-v3 写过 backdrop-filter。
+            // HMR 只换 JS、不刷新页面，行内样式不会自己消失 ——
+            // 不清掉的话「闪烁」会以幽灵的形式继续存在，用户以为改了没用。
             target.style.removeProperty('background');
+            target.style.removeProperty('backdrop-filter');
+            target.style.removeProperty('-webkit-backdrop-filter');
             target.style.removeProperty('--dsh-glass-composer-fill-light');
             target.style.removeProperty('--dsh-glass-composer-fill-dark');
-            target.style.setProperty('backdrop-filter', filter);
-            target.style.setProperty('-webkit-backdrop-filter', filter);
+            // isolation 不建立包含块，只保住层叠上下文（::before 的 z-index:-1
+            // 需要它才不会掉到祖先背后）。它也不影响 fixed 后代。
+            target.style.setProperty('isolation', 'isolate');
           }
           return targets.size;
         };
@@ -3253,15 +3438,20 @@ html[data-dsh-glass] body[data-ds-dark-theme] [class*="_emptyTabHost_"] {
             activeScheme = null;
           }
           window.__dshGlass = {
-            rev: 'inline-v3',
+            rev: 'inline-v4',
             enabled: settings.enabled,
             targets: composerTargets,
             composerBlur,
+            // 本轮修闪烁：确认 seat / 卡片自己**不是** backdrop root，
+            // 模糊已经挪到 ::before 上（seatBackdrop 应为 'none'，
+            // seatBackdropBefore 应是非 none）。
             seatFound: seat !== null,
             seatBackground: seat === null ? null : getComputedStyle(seat).backgroundColor,
             seatBackdrop: seat === null ? null : getComputedStyle(seat).backdropFilter,
+            seatBackdropBefore: seat === null ? null : getComputedStyle(seat, '::before').backdropFilter,
             seatHeight: seat === null ? null : Math.round(seat.getBoundingClientRect().height),
             cardBackground: card === null ? null : getComputedStyle(card).backgroundColor,
+            cardBackdrop: card === null ? null : getComputedStyle(card).backdropFilter,
             // 背景图：有图 / 显示方式 / 裁剪比例（确认设置真的走到了 paint）
             bgImage: hasBackground,
             bgFit: normalizeFit(settings.bgFit),

@@ -21,10 +21,10 @@
    https://github.com/rans725/dsh-glass-ranswork/archive/refs/heads/main.tar.gz
    ```
 
-   **固定版本 v1.0.0**
+   **固定版本 v1.0.1**
 
    ```
-   https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.0/dsh-glass-ranswork-1.0.0.tgz
+   https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.1/dsh-glass-ranswork-1.0.1.tgz
    ```
 
    **本地目录**：把仓库 zip（Code → Download ZIP）或 Release 的 `.tgz` 解压，
@@ -59,10 +59,10 @@ https://github.com/rans725/dsh-glass-ranswork/archive/refs/heads/main.tar.gz
 ### 方式二：Release 安装包（固定版本）
 
 到 [Releases](https://github.com/rans725/dsh-glass-ranswork/releases) 下载
-`dsh-glass-ranswork-1.0.0.tgz`，安装时填它的**本地路径**，或直接填资源地址：
+`dsh-glass-ranswork-1.0.1.tgz`，安装时填它的**本地路径**，或直接填资源地址：
 
 ```
-https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.0/dsh-glass-ranswork-1.0.0.tgz
+https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.1/dsh-glass-ranswork-1.0.1.tgz
 ```
 
 ### 方式三：本地目录 / zip
@@ -70,7 +70,7 @@ https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.0/dsh-glass
 两种来源都可以：
 
 - 仓库页 **Code → Download ZIP**（解压后是 `dsh-glass-ranswork-main/`）；
-- 或 Release 里的 `dsh-glass-ranswork-1.0.0.tgz`（解压后是 `package/`）。
+- 或 Release 里的 `dsh-glass-ranswork-1.0.1.tgz`（解压后是 `package/`）。
 
 把**含 `package.json` 的那一层目录**放到任意位置，在安装入口填它的绝对路径，例如：
 
@@ -484,6 +484,37 @@ html[data-dsh-glass] [class*="_emptyTabHost_"] {
 
 回退值必须写 `transparent` 而不是 `var(--dsw-alias-bg-base)`：自定义属性自引用
 会构成循环，整条声明会被丢弃。
+
+## 更新日志
+
+### v1.0.1（2026-10-19）
+
+发送框（composer）相关的四处修复，都围绕同一类根因：`backdrop-filter`
+不只是「给元素加个模糊」，它还会**改变元素的层叠与包含块语义**。
+
+- **修复：输入法有字时，鼠标移到发送箭头，发送框会闪一下**
+  `backdrop-filter` 会让元素成为 `position: fixed` 后代的包含块。宿主的
+  Tooltip 气泡正是 fixed + 视口坐标、且默认不 portal，于是被祖先的模糊层
+  带偏；每次插入 / 重定位都触发整块毛玻璃重新采样。
+  现在模糊一律挂在 `::before` 伪元素上（伪元素没有后代，不会成为包含块）。
+- **修复：发送框颜色和背景图对不上（比周围更艳）**
+  `backdrop-filter` 是**逐层叠加**的 —— 列 200% × 内层 200% 实际是 400%+。
+  现在饱和度只由最外层（三列 / 浮层）负责，内层只做模糊。
+  实测框内与框外的色差从 Δ=31 降到 Δ=3。
+- **修复：发送框左右和下方多出一圈毛玻璃**
+  模糊原先挂在整列宽的 `composerSeat` 上，而卡片受
+  `--dsh-composer-side-clearance`（16px）与底部 4px 内边距约束、比它窄一圈。
+  现在模糊只挂在卡片自身，形状随 `border-radius` 走，不再外溢。
+- **修复：「发送框 / 任务模糊」滑块拖动无反应**
+  上一版把卡片规则拆出来单独声明时漏了伪元素骨架（`content` 等），
+  没有 `content` 的 `::before` 不会生成，滑块的值没有消费者。
+  已补回骨架，并且**调到 0 现在是真正关闭**（`backdrop-filter: none`），
+  而不是留下一个仍然会建合成层的 `blur(0px)`。
+
+### v1.0.0（2026-10-17）
+
+首个版本：半透明毛玻璃外观、三档不透明度、自定义背景图（五种摆放 + 裁剪）、
+文字保护、跟随图片明暗。
 
 ## 已知边界（Windows）
 
