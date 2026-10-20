@@ -16,11 +16,14 @@
 1. 打开 DSH → **设置 → 插件 → 安装插件**；
 2. 粘贴地址（四选一，按网络环境挑）：
 
-   **npm（推荐；能 `pnpm update`，也能走 npmmirror）**
+   **npm（发布后推荐；能 `pnpm update`，也能走 npmmirror）**
 
    ```
    dsh-glass-ranswork@^1.0.2
    ```
+
+   > 发布尚未完成时 `npm view dsh-glass-ranswork version` 会返回 404，
+   > 请先用下面的 codeload 地址；npm 发布后这条命令即可用。
 
    **codeload 固定版本（GitHub 主站不通时推荐）**
 
@@ -45,11 +48,14 @@
 本包是一个 **DSH bundle**（`package.json` 的 `dsh.bundle.patch` 指向
 `cordis.patch.yml`，`dsh.client` 声明浏览器半侧），不需要构建、没有依赖。
 
-### 方式一：npm（推荐）
+### 方式一：npm（发布后推荐）
 
 ```
 dsh-glass-ranswork@^1.0.2
 ```
+
+> 如果 `npm view dsh-glass-ranswork version` 返回 404，说明 npm 包还没发布成功；
+> 请先用「方式二」的 codeload 地址，发布后这条命令即可用。
 
 npm 上的包与 GitHub tag 是同一份内容，由 CI 在打 tag 时自动发布（见文末「发布」）。
 好处是版本可以写成 `^1.0.2`，升级走 `pnpm update`，也能命中 npmmirror 等镜像。
