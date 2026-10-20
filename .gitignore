@@ -1,0 +1,12 @@
+# 依赖 / 构建产物（本插件没有依赖，也不构建；留着是防手滑）
+node_modules/
+dist/
+*.tgz
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+*.log
+
+# DSH ops 工具的临时锁（每个哈希一份，不该进仓库）
+.dsh-ops-update-*.lock

@@ -2921,7 +2921,7 @@ html[data-dsh-glass] body[data-ds-dark-theme] [class*="_emptyTabHost_"] {
         { className: 'dsh-glass-page' },
         h('div', { className: 'dsh-glass-intro' }, t('intro')),
 
-        // 当前版本 + 一行更新提示。更新检查失败 / 还没发布到 npm 时只显示版本号。
+        // 当前版本 + 一行更新提示。检查失败（离线）时只显示版本号。
         h(
           'div',
           { className: 'dsh-glass-version' },

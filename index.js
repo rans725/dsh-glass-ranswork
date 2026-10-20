@@ -62,8 +62,11 @@ const BACKGROUND_PATH = '/glass-theme/background';
 /** 版本 / 更新检查路由（设置页顶部显示当前版本，并静默比对一次最新版）。 */
 const VERSION_PATH = '/glass-theme/version';
 
-/** npm 包名 —— 更新检查问 registry（可走镜像，不依赖 github.com）。 */
+/** npm 包名（`package.json` 与市场身份用；更新检查已不再问 registry，见下）。 */
 const PACKAGE_NAME = 'dsh-glass-ranswork';
+
+/** GitHub 仓库（`owner/name`）—— 更新检查的唯一来源。 */
+const UPDATE_REPO = 'rans725/dsh-glass-ranswork';
 
 /** 更新检查结果的缓存时长：6 小时。设置页不是仪表盘，不必每次打开都问。 */
 const UPDATE_TTL = 6 * 60 * 60 * 1000;
@@ -75,15 +78,40 @@ const UPDATE_RETRY = 10 * 60 * 1000;
 const UPDATE_TIMEOUT = 2500;
 
 /**
- * 依次尝试的 registry。
+ * 依次尝试的更新检查地址。
  *
- * 官方优先；国内网络下 npmmirror 通常更快，而 github.com 往往是最先不通的那个。
- * 两个都失败就当作「不知道」，绝不把网络错误弹给用户。
+ * 为什么问 GitHub Releases 而不是 npm：本包**没有发布到 npm**（作者不走 npm 账号），
+ * registry 上永远是 404；GitHub 的 tag / Release 才是真正发布的那个地方。
+ * 注意 api.github.com 的匿名限速是 60 次/小时/IP，所以缓存必须留着（UPDATE_TTL）。
+ *
+ * 官方优先；国内网络下 `latest-1` 这个数字镜像通常更快。两个都失败就当作
+ * 「不知道」，绝不把网络错误弹给用户。
  */
-const UPDATE_REGISTRIES = [
-  `https://registry.npmjs.org/${PACKAGE_NAME}/latest`,
-  `https://registry.npmmirror.com/${PACKAGE_NAME}/latest`,
+const UPDATE_SOURCES = [
+  { label: 'github', url: `https://api.github.com/repos/${UPDATE_REPO}/releases/latest` },
+  { label: 'mirror', url: `https://github.com/${UPDATE_REPO}/releases/latest/download/version.json` },
 ];
+
+/**
+ * 在响应里找出「最新版本号」。
+ *
+ * - GitHub Release 的 JSON：`tag_name`
+ * - 镜像上的 `version.json`：`version`
+ *
+ * 两边都按「先认 tag_name，再认 version」的顺序取，不依赖 label ——
+ * 静态文件万一被换成一个 GitHub Release 的 JSON，也照样能读。
+ *
+ * @returns 版本号字符串（去掉前缀 v），认不出来就是 ''。
+ */
+function pickVersion(data) {
+  if (data === null || typeof data !== 'object') return '';
+  for (const raw of [data.tag_name, data.version]) {
+    if (typeof raw !== 'string') continue;
+    const value = raw.trim().replace(/^v/i, '');
+    if (/^\d+\.\d+\.\d+/.test(value)) return value;
+  }
+  return '';
+}
 
 /**
  * 比较两个 `x.y.z` 版本号（只比数字段，够用）。
@@ -501,24 +529,31 @@ export function apply(ctx) {
     return Date.now() - last > (latest.value === '' ? UPDATE_RETRY : UPDATE_TTL);
   };
 
-  /** 问一次 registry；两个都失败返回 ''（网络受限是常态，不当作错误上报）。 */
+  /**
+   * 问一次远端；全部失败返回 ''（网络受限是常态，不当作错误上报）。
+   *
+   * 按 `UPDATE_SOURCES` 顺序回退：GitHub API 优先，不通时用 GitHub 自己的
+   * `releases/latest/download/...` 静态文件兜底（不占 API 限速）。
+   */
   const fetchLatest = async () => {
     if (typeof fetch !== 'function') return '';
-    for (const url of UPDATE_REGISTRIES) {
+    for (const source of UPDATE_SOURCES) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), UPDATE_TIMEOUT);
       try {
-        const response = await fetch(url, {
+        const response = await fetch(source.url, {
           signal: controller.signal,
-          headers: { accept: 'application/json' },
+          headers: {
+            accept: 'application/json',
+            // GitHub API 要求带 UA，否则 403。
+            'user-agent': `${PACKAGE_NAME}/${await versionOf()}`,
+          },
         });
         if (!response.ok) continue;
-        const data = await response.json();
-        if (data !== null && typeof data.version === 'string' && /^\d+\.\d+\.\d+/.test(data.version)) {
-          return data.version;
-        }
+        const value = pickVersion(await response.json());
+        if (value !== '') return value;
       } catch {
-        // 超时 / DNS / TLS：换下一个 registry
+        // 超时 / DNS / TLS：换下一个来源
       } finally {
         clearTimeout(timer);
       }
@@ -743,7 +778,7 @@ export function apply(ctx) {
    * 版本 / 更新检查路由。
    *
    * 为什么由宿主半侧来做：浏览器半侧拿不到 package.json 的版本，而且受限网络
-   * 下由 Node 访问 registry 比页面直连更稳（还能顺序回退到 npmmirror）。
+   * 下由 Node 访问 api.github.com 比页面直连更稳（还能回退到静态 version.json）。
    *
    * 语义：**永远先返回当前版本**，更新信息只是附带的；检查失败就当作不知道，
    * 不显示任何错误。设置页不是更新器，这里不做自动升级。
@@ -773,7 +808,7 @@ export function apply(ctx) {
           version,
           latest: fresh,
           updateAvailable: fresh !== '' && version !== '' && compareVersions(fresh, version) > 0,
-          url: fresh === '' ? '' : `https://github.com/rans725/dsh-glass-ranswork/releases/tag/v${fresh}`,
+          url: fresh === '' ? '' : `https://github.com/${UPDATE_REPO}/releases/tag/v${fresh}`,
           checkedAt: latest.at,
         });
       } catch (error) {

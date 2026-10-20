@@ -14,62 +14,50 @@
 > 你的依赖不会跟着动。重装多少次都还是当初装下的那个版本。
 
 1. 打开 DSH → **设置 → 插件 → 安装插件**；
-2. 粘贴地址（四选一，按网络环境挑）：
+2. 粘贴地址（三选一，按网络环境挑）：
 
-   **npm（发布后推荐；能 `pnpm update`，也能走 npmmirror）**
-
-   ```
-   dsh-glass-ranswork@^1.0.2
-   ```
-
-   > 发布尚未完成时 `npm view dsh-glass-ranswork version` 会返回 404，
-   > 请先用下面的 codeload 地址；npm 发布后这条命令即可用。
-
-   **codeload 固定版本（GitHub 主站不通时推荐）**
+   **codeload 固定版本（推荐）**
 
    ```
-   https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.2
+   https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.3
    ```
 
    **Release 安装包（固定版本）**
 
    ```
-   https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.2/dsh-glass-ranswork-1.0.2.tgz
+   https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.3/dsh-glass-ranswork-1.0.3.tgz
    ```
 
    **本地目录**：把仓库 zip（Code → Download ZIP）或 Release 的 `.tgz` 解压，
    填含 `package.json` 的那层目录，例如 `D:\Plugins\dsh-glass-ranswork`。
 
 3. 装完按提示**重启 DSH**，打开 **设置 → 自定义主题** 即可调外观。
-4. 设置页顶部会显示当前加载的版本号（如 `v1.0.2`）；有新版时多一行提示。
+4. 设置页顶部会显示当前加载的版本号（如 `v1.0.3`）；有新版时多一行提示。
 
 ## 安装
 
 本包是一个 **DSH bundle**（`package.json` 的 `dsh.bundle.patch` 指向
 `cordis.patch.yml`，`dsh.client` 声明浏览器半侧），不需要构建、没有依赖。
 
-### 方式一：npm（发布后推荐）
+### 方式一：codeload 固定发行版（推荐）
 
-```
-dsh-glass-ranswork@^1.0.2
-```
-
-> 如果 `npm view dsh-glass-ranswork version` 返回 404，说明 npm 包还没发布成功；
-> 请先用「方式二」的 codeload 地址，发布后这条命令即可用。
-
-npm 上的包与 GitHub tag 是同一份内容，由 CI 在打 tag 时自动发布（见文末「发布」）。
-好处是版本可以写成 `^1.0.2`，升级走 `pnpm update`，也能命中 npmmirror 等镜像。
-
-也可以在 profile 目录里直接装：
+在 profile 目录里直接装：
 
 ```powershell
-pnpm add dsh-glass-ranswork@^1.0.2
+pnpm add https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.3
 ```
+
+> **本包不发 npm。** 所以 `pnpm add dsh-glass-ranswork` / `npm view
+> dsh-glass-ranswork` 一律 404 —— 那是预期行为，不是发布出错了。
+> 安装地址只有下面三条（codeload / Release 资产 / 本地目录）。
+
+好处是版本可以写死在 tag 里，升级时换 tag 号即可；坏处是不能写成 `^1.0.3`
+这种范围（pnpm 无从解析），所以「有新版本」的提示靠设置页顶部那一行。
 
 ### 方式二：codeload 直链（固定版本，不需要 Git）
 
 ```
-https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.2
+https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.3
 ```
 
 为什么不写 `https://github.com/.../archive/...`：
@@ -89,20 +77,20 @@ https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.2
 ### 方式三：Release 安装包（固定版本）
 
 到 [Releases](https://github.com/rans725/dsh-glass-ranswork/releases) 下载
-`dsh-glass-ranswork-1.0.2.tgz`，安装时填它的**本地路径**，或直接填资源地址：
+`dsh-glass-ranswork-1.0.3.tgz`，安装时填它的**本地路径**，或直接填资源地址：
 
 ```
-https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.2/dsh-glass-ranswork-1.0.2.tgz
+https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.3/dsh-glass-ranswork-1.0.3.tgz
 ```
 
-> 资产地址同样先经过 `github.com`。主站不通时，改用上面的 codeload 直链或 npm。
+> 资产地址同样先经过 `github.com`。主站不通时，改用上面的 codeload 直链。
 
 ### 方式四：本地目录 / zip
 
 两种来源都可以：
 
 - 仓库页 **Code → Download ZIP**（解压后是 `dsh-glass-ranswork-main/`）；
-- 或 Release 里的 `dsh-glass-ranswork-1.0.2.tgz`（解压后是 `package/`）。
+- 或 Release 里的 `dsh-glass-ranswork-1.0.3.tgz`（解压后是 `package/`）。
 
 把**含 `package.json` 的那一层目录**放到任意位置，在安装入口填它的绝对路径，例如：
 
@@ -128,20 +116,14 @@ D:\Plugins\dsh-glass-ranswork
 
 ## 升级
 
-先确认当前版本：**设置 → 自定义主题** 顶部有 `v1.0.2`（旧版宿主没有这行，
+先确认当前版本：**设置 → 自定义主题** 顶部有 `v1.0.3`（旧版宿主没有这行，
 可以在 profile 的 `node_modules/dsh-glass-ranswork/package.json` 里看）。
 
-### npm 装的
+### 怎么知道有新版本
 
-在 profile 目录（Windows 默认 `%USERPROFILE%\.dsh\profiles\desktop`）执行：
-
-```powershell
-pnpm update dsh-glass-ranswork
-# 或显式指定版本
-pnpm add dsh-glass-ranswork@^1.0.2
-```
-
-然后重启 DSH、刷新页面。设置与壁纸不会动（它们存在 `$DSH_HOME`）。
+设置页顶部那行：`v1.0.3` 后面如果出现「**有新版本 v1.0.4**」的链接，点它去 Release。
+宿主半侧每 6 小时静默问一次 `api.github.com` 的最新 Release（失败 10 分钟后重试，
+全程不打扰；断网时只显示版本号）。
 
 ### tarball / Release 装的
 
@@ -154,7 +136,7 @@ pnpm add dsh-glass-ranswork@^1.0.2
 或者一步到位：
 
 ```powershell
-pnpm add https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.2
+pnpm add https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.3
 ```
 
 ### 为什么“重装一次”不升级
@@ -166,14 +148,14 @@ pnpm 对 tarball 依赖记录的是 `spec + integrity + version`。spec 没变�
 只有下面两种情况会真正换包：
 
 - spec 变了（新 tag 的 URL / 新版本号）；
-- 你显式让 pnpm 重新解析（`pnpm update`、删 lockfile）。
+- 你显式让 pnpm 重新解析（删 lockfile 或 `pnpm install --force`）。
 
 ### 卡住时的自查
 
 | 现象 | 原因 | 处理 |
 | --- | --- | --- |
-| 重装后版本不变 | lockfile 钉住了旧 spec | 换成新 tag 的 URL，或 `pnpm update` |
-| `HEAD https://github.com/.../main.tar.gz ... ETIMEDOUT` | `github.com` 不通 | 改用 codeload 直链或 npm |
+| 重装后版本不变 | lockfile 钉住了旧 spec | 换成新 tag 的 URL |
+| `HEAD https://github.com/.../main.tar.gz ... ETIMEDOUT` | `github.com` 不通 | 改用 codeload 直链 |
 | 安装返回 `changed:false`，日志只有 `fetch failed` | 旧依赖也在拉 `github.com`，一个失败整次回滚 | 先从 `package.json` 删掉旧条目再装 |
 | 设置页没有版本行 | 宿主半侧还是旧版 | 重启 DSH（浏览器半侧热更新，宿主不会） |
 
@@ -574,19 +556,34 @@ html[data-dsh-glass] [class*="_emptyTabHost_"] {
 
 ## 更新日志
 
+### v1.0.3（2026-10-20）
+
+**更新检查换了数据源：不再问 npm，改问 GitHub Releases。**
+本包不发 npm（作者不打算维护 npm 账号），registry 上永远是 404，所以
+v1.0.2 的「有新版本」提示在事实上永远不会出现。
+
+- **检查源**：`index.js` 的 `UPDATE_REGISTRIES`（npm 官方 + npmmirror）换成
+  `UPDATE_SOURCES` —— `api.github.com/repos/.../releases/latest` 的 `tag_name`
+  优先，回退到 GitHub 自己的静态文件
+  `github.com/.../releases/latest/download/version.json`（不占 API 限速）；
+- **缓存与退避不变**：成功 6 小时（匿名 API 限速 60 次/小时/IP，不能去掉缓存），
+  失败 10 分钟退避，并发请求共用一次往返，单次 2.5 秒超时，失败静默；
+- **请求头**：带 `user-agent`（GitHub API 不带 UA 会 403）；
+- **文档**：README 删掉 npm 安装方式与「发布到 npm」的说明，改为
+  codeload 固定 tag 直链为主，并写明「本包不发 npm」这个事实。
+
 ### v1.0.2（2026-10-20）
 
 安装 / 升级链路修复（对应 [issue #1](https://github.com/rans725/dsh-glass-ranswork/issues/1)）：
 
 - **文档**：删掉「重装一次即拉最新 main」。明确写出 lockfile 会钉住
   tarball 的 integrity / version，升级必须换版本化地址；
-- **安装源**：README 改为优先 npm 与 codeload 固定 tag 直链，绕开
+- **安装源**：README 改为 codeload 固定 tag 直链，绕开
   `github.com` 的 302 跳转（受限网络下最常卡住的就是这一步）；
-- **npm 发布**：去掉 `private`，补 `repository` / `publishConfig`，
-  新增 `.github/workflows/release.yml`（打 tag 自动发布 + 建 Release + 传 tgz）；
+- **发布**：补 `repository` / `publishConfig`，新增
+  `.github/workflows/release.yml`（打 tag 自动建 Release + 传 tgz）；
 - **版本可见**：设置页顶部显示当前加载的版本；宿主半侧新增
-  `/glass-theme/version`，静默比对 npm registry（官方 → npmmirror），
-  有新版给一行链接，检查失败什么都不显示；
+  `/glass-theme/version`，静默比对最新版，有新版给一行链接，检查失败什么都不显示；
 - **排错**：新增「升级」「卡住时的自查」，覆盖版本不变、ETIMEDOUT、
   `changed:false` 三类常见现象。
 
@@ -679,13 +676,13 @@ node --check client.js
 2. 提交后打 tag 并推送：
 
    ```powershell
-   git tag v1.0.2
-   git push origin v1.0.2
+   git tag v1.0.3
+   git push origin v1.0.3
    ```
 
 3. `.github/workflows/release.yml` 会：校验 tag 与 `version` 一致 → 语法检查 →
-   打包 → 创建 Release 并上传 `.tgz` → `npm publish --access public --provenance`。
+   打包 → 创建 Release 并上传 `.tgz`。
 
-`NPM_TOKEN`（npm 的 Automation token）是可选的：没配时流水线只跳过
-npm 发布，Release 与 `.tgz` 资产照常生成 —— 用户仍可用 codeload /
-Release 安装，只是暂时拿不到 `pnpm update` 这条升级路径。
+**本包不发 npm**，所以流水线里的 `npm publish` 那一步在没配 `NPM_TOKEN` 时
+自动跳过（那是默认状态，日志里有一行 `::warning::`，可以忽略）。
+用户侧的「有新版本」来自 GitHub Release 本身，与 npm 无关。

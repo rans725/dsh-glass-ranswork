@@ -1,17 +1,18 @@
-# 打 tag 即发布：GitHub Release（附 .tgz 资产）+ npm 包。
+# 打 tag 即发布：创建 GitHub Release（附 .tgz 资产）。
 #
 # 为什么要有这条流水线：手写 "重装一次拉最新 main" 那条路走不通 ——
 # pnpm 会把 tarball 的 integrity 钉进 lockfile。只有版本号变了的包
-# （npm 的 ^1.0.x，或新 tag 的 codeload URL）才会被重新解析。
+# （新 tag 的 codeload URL / Release 资产）才会被重新解析。
+#
+# 本包**不发 npm**：registry 上没有 dsh-glass-ranswork，用户侧的
+# 「有新版本」提示来自本流水线建的 Release（插件查
+# api.github.com 的 releases/latest）。所以这里没有 npm publish 步骤。
 #
 # 用法：
 #   1. package.json 的 version 改成要发的版本；
-#   2. git tag v1.0.2 && git push origin v1.0.2；
-#   3. Actions 创建同名 Release、上传 tgz，并 npm publish。
-#
-# 可选 Secret：NPM_TOKEN（npmjs.com 的 Automation token）。
-# 没配置时只跳过 npm 发布，Release 资产照常生成 —— 用户仍可用
-# codeload / Release 地址安装，只是暂时不能用 pnpm update 升级。
+#   2. git tag v1.0.3 && git push origin v1.0.3；
+#   3. Actions 创建同名 Release、上传 tgz。
+
 on:
   push:
     tags:
@@ -19,20 +20,16 @@ on:
 
 permissions:
   contents: write # 创建 Release
-  id-token: write # npm provenance
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
 
       - name: Check tag matches package.json
         run: |
@@ -45,6 +42,17 @@ jobs:
             }
           '
 
+      - name: Check version.json matches package.json
+        run: |
+          node -e '
+            const pkg = require("./package.json");
+            const meta = require("./version.json");
+            if (meta.version !== pkg.version) {
+              console.error(`version.json ${meta.version} != package.json ${pkg.version}`);
+              process.exit(1);
+            }
+          '
+
       - name: Syntax check
         run: |
           node --check index.js
@@ -53,20 +61,13 @@ jobs:
       - name: Pack
         run: npm pack
 
-      # 先建 Release：即使 npm 那步没配 token / 临时失败，用户仍有
-      # 可下载的 .tgz 资产，codeload 与 Release 两条安装路都不断。
+      # 一次上传两个资产：.tgz 给要装包的人，version.json 给
+      # api.github.com 不通时的兜底路径
+      # （releases/latest/download/version.json）读取。
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dsh-glass-ranswork-*.tgz
+          files: |
+            dsh-glass-ranswork-*.tgz
+            version.json
           generate_release_notes: true
-
-      - name: Publish to npm
-        if: env.NPM_TOKEN != ''
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: npm token missing
-        if: env.NPM_TOKEN == ''
-        run: echo "::warning::NPM_TOKEN 未配置，已跳过 npm 发布；Release 资产已正常生成。"
