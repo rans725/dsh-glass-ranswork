@@ -59,6 +59,48 @@ const ROUTE_PATH = '/glass-theme/settings';
 /** 背景图路由：GET 取图 / POST 上传 / DELETE 删除。 */
 const BACKGROUND_PATH = '/glass-theme/background';
 
+/** 版本 / 更新检查路由（设置页顶部显示当前版本，并静默比对一次最新版）。 */
+const VERSION_PATH = '/glass-theme/version';
+
+/** npm 包名 —— 更新检查问 registry（可走镜像，不依赖 github.com）。 */
+const PACKAGE_NAME = 'dsh-glass-ranswork';
+
+/** 更新检查结果的缓存时长：6 小时。设置页不是仪表盘，不必每次打开都问。 */
+const UPDATE_TTL = 6 * 60 * 60 * 1000;
+
+/** 检查失败后的重试间隔：10 分钟。避免离线时每个请求都白等一个超时。 */
+const UPDATE_RETRY = 10 * 60 * 1000;
+
+/** 单次远端检查的超时（毫秒）。超时就静默放弃，不能拖慢设置页。 */
+const UPDATE_TIMEOUT = 2500;
+
+/**
+ * 依次尝试的 registry。
+ *
+ * 官方优先；国内网络下 npmmirror 通常更快，而 github.com 往往是最先不通的那个。
+ * 两个都失败就当作「不知道」，绝不把网络错误弹给用户。
+ */
+const UPDATE_REGISTRIES = [
+  `https://registry.npmjs.org/${PACKAGE_NAME}/latest`,
+  `https://registry.npmmirror.com/${PACKAGE_NAME}/latest`,
+];
+
+/**
+ * 比较两个 `x.y.z` 版本号（只比数字段，够用）。
+ *
+ * @returns 负数表示 a 更旧，0 表示相等，正数表示 a 更新。
+ */
+function compareVersions(a, b) {
+  const parse = (value) => String(value).split('.').map((part) => Number.parseInt(part, 10) || 0);
+  const left = parse(a);
+  const right = parse(b);
+  for (let index = 0; index < 3; index += 1) {
+    const diff = (left[index] ?? 0) - (right[index] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
 /** 设置请求体上限（64 KiB）。这里只有几个数字和布尔，正常不到 1 KiB。 */
 const BODY_LIMIT = 64 << 10;
 
@@ -427,6 +469,82 @@ export function apply(ctx) {
   /** 写入串行化：一次只跑一个，避免两次快速改动交错覆盖。 */
   let tail = Promise.resolve();
 
+  /** 本包版本（从同目录的 package.json 读；读不到就空串，设置页不显示）。 */
+  let ownVersion;
+
+  /** 读本包版本（只读一次，失败也缓存，避免每次请求都碰磁盘）。 */
+  const versionOf = async () => {
+    if (ownVersion !== undefined) return ownVersion;
+    try {
+      const text = await readFile(new URL('./package.json', import.meta.url), 'utf8');
+      const parsed = JSON.parse(text);
+      ownVersion = typeof parsed.version === 'string' ? parsed.version : '';
+    } catch {
+      ownVersion = '';
+    }
+    return ownVersion;
+  };
+
+  /** 远端最新版缓存：at = 上次成功检查的时间戳，value = 版本号（'' = 还不知道）。 */
+  let latest = { at: 0, value: '' };
+
+  /** 上一次检查失败的时间：失败也退避，否则每次打开设置页都要等满一个超时。 */
+  let failedAt = 0;
+
+  /** 正在进行的检查：并发的设置页请求共用同一次网络往返。 */
+  let checking = null;
+
+  /** 是否该重新检查：成功按 6 小时，失败按 10 分钟退避。 */
+  const shouldCheck = () => {
+    const last = Math.max(latest.at, failedAt);
+    if (last === 0) return true;
+    return Date.now() - last > (latest.value === '' ? UPDATE_RETRY : UPDATE_TTL);
+  };
+
+  /** 问一次 registry；两个都失败返回 ''（网络受限是常态，不当作错误上报）。 */
+  const fetchLatest = async () => {
+    if (typeof fetch !== 'function') return '';
+    for (const url of UPDATE_REGISTRIES) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), UPDATE_TIMEOUT);
+      try {
+        const response = await fetch(url, {
+          signal: controller.signal,
+          headers: { accept: 'application/json' },
+        });
+        if (!response.ok) continue;
+        const data = await response.json();
+        if (data !== null && typeof data.version === 'string' && /^\d+\.\d+\.\d+/.test(data.version)) {
+          return data.version;
+        }
+      } catch {
+        // 超时 / DNS / TLS：换下一个 registry
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    return '';
+  };
+
+  /** 刷新远端版本缓存；同一时间只跑一次，失败保留旧值并记下退避时间。 */
+  const refreshLatest = () => {
+    if (checking !== null) return checking;
+    checking = fetchLatest()
+      .then((value) => {
+        if (value !== '') latest = { at: Date.now(), value };
+        else failedAt = Date.now();
+        return latest.value;
+      })
+      .catch(() => {
+        failedAt = Date.now();
+        return latest.value;
+      })
+      .finally(() => {
+        checking = null;
+      });
+    return checking;
+  };
+
   /** 解析设置文件路径（只算一次）。 */
   const pathOf = async () => {
     if (filePath === undefined) filePath = join(await resolveHome(), 'glass-theme.json');
@@ -620,4 +738,47 @@ export function apply(ctx) {
       }
     },
   }), 'dsh-glass-ranswork: background route');
+
+  /**
+   * 版本 / 更新检查路由。
+   *
+   * 为什么由宿主半侧来做：浏览器半侧拿不到 package.json 的版本，而且受限网络
+   * 下由 Node 访问 registry 比页面直连更稳（还能顺序回退到 npmmirror）。
+   *
+   * 语义：**永远先返回当前版本**，更新信息只是附带的；检查失败就当作不知道，
+   * 不显示任何错误。设置页不是更新器，这里不做自动升级。
+   */
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: VERSION_PATH,
+    handler: async (req, res) => {
+      try {
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+          sendJson(res, 405, { ok: false, error: 'method not allowed' });
+          return;
+        }
+
+        const version = await versionOf();
+
+        if (shouldCheck()) {
+          const pending = refreshLatest();
+          // 第一次没有缓存时最多等一个超时窗口；之后有旧值就立刻返回、后台刷新。
+          if (latest.at === 0 && failedAt === 0) {
+            await Promise.race([pending, new Promise((done) => setTimeout(done, UPDATE_TIMEOUT))]);
+          }
+        }
+
+        const fresh = latest.value;
+        sendJson(res, 200, {
+          version,
+          latest: fresh,
+          updateAvailable: fresh !== '' && version !== '' && compareVersions(fresh, version) > 0,
+          url: fresh === '' ? '' : `https://github.com/rans725/dsh-glass-ranswork/releases/tag/v${fresh}`,
+          checkedAt: latest.at,
+        });
+      } catch (error) {
+        sendJson(res, 400, { ok: false, error: messageOf(error) });
+      }
+    },
+  }), 'dsh-glass-ranswork: version route');
 }

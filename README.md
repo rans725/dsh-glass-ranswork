@@ -9,68 +9,94 @@
 
 ## 快速开始
 
-> **Windows 没装 Git 也能装**：安装器底层是 pnpm，`github:` 前缀会调用系统
-> git；下面第一个地址是直接下载 tar.gz，不需要 Git。
+> **升级之前先看「升级」一节。** 把 `.../main.tar.gz` 当安装地址时，pnpm 会把
+> 那个 tarball 的 integrity 和 version 一起写进 lockfile —— `main` 会动，
+> 你的依赖不会跟着动。重装多少次都还是当初装下的那个版本。
 
 1. 打开 DSH → **设置 → 插件 → 安装插件**；
-2. 粘贴地址（三选一）：
+2. 粘贴地址（四选一，按网络环境挑）：
 
-   **最新版（推荐，自动跟 main）**
-
-   ```
-   https://github.com/rans725/dsh-glass-ranswork/archive/refs/heads/main.tar.gz
-   ```
-
-   **固定版本 v1.0.1**
+   **npm（推荐；能 `pnpm update`，也能走 npmmirror）**
 
    ```
-   https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.1/dsh-glass-ranswork-1.0.1.tgz
+   dsh-glass-ranswork@^1.0.2
+   ```
+
+   **codeload 固定版本（GitHub 主站不通时推荐）**
+
+   ```
+   https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.2
+   ```
+
+   **Release 安装包（固定版本）**
+
+   ```
+   https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.2/dsh-glass-ranswork-1.0.2.tgz
    ```
 
    **本地目录**：把仓库 zip（Code → Download ZIP）或 Release 的 `.tgz` 解压，
    填含 `package.json` 的那层目录，例如 `D:\Plugins\dsh-glass-ranswork`。
 
 3. 装完按提示**重启 DSH**，打开 **设置 → 自定义主题** 即可调外观。
-
-> 升级：在插件管理器里重装一次即可（tar.gz 会重新拉最新 main）。
-> 详细说明见下方「安装」一节。
+4. 设置页顶部会显示当前加载的版本号（如 `v1.0.2`）；有新版时多一行提示。
 
 ## 安装
 
 本包是一个 **DSH bundle**（`package.json` 的 `dsh.bundle.patch` 指向
 `cordis.patch.yml`，`dsh.client` 声明浏览器半侧），不需要构建、没有依赖。
 
-### 方式一：一行地址安装（不需要 Git，推荐）
-
-打开 DSH 的 **设置 → 插件 → 安装插件**（输入安装源 / spec 的地方），填：
+### 方式一：npm（推荐）
 
 ```
-https://github.com/rans725/dsh-glass-ranswork/archive/refs/heads/main.tar.gz
+dsh-glass-ranswork@^1.0.2
 ```
 
-装完按提示**重启 DSH**（宿主半侧要重新加载；浏览器半侧会热更新）。
+npm 上的包与 GitHub tag 是同一份内容，由 CI 在打 tag 时自动发布（见文末「发布」）。
+好处是版本可以写成 `^1.0.2`，升级走 `pnpm update`，也能命中 npmmirror 等镜像。
 
-> **为什么不用 `github:` 前缀**：安装器底层是 pnpm，解析 `github:` 依赖时会调用
-> 系统 `git`；Windows 上没装 Git 就会报
-> `git ls-remote failed: 'git' 不是内部或外部命令`。
-> 上面的 `tar.gz` 地址由 pnpm 直接下载解包，**不需要 Git**。
-> 装了 Git 的环境也可以用 `github:rans725/dsh-glass-ranswork`。
+也可以在 profile 目录里直接装：
 
-### 方式二：Release 安装包（固定版本）
+```powershell
+pnpm add dsh-glass-ranswork@^1.0.2
+```
+
+### 方式二：codeload 直链（固定版本，不需要 Git）
+
+```
+https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.2
+```
+
+为什么不写 `https://github.com/.../archive/...`：
+
+- `github.com` 只负责 302 跳到 `codeload.github.com`；主站被墙 / 不稳时，
+  pnpm 的 HEAD 请求会 `ETIMEDOUT`，而真正下发 tar 的 codeload 往往是通的；
+- codeload 直链少一次跳转，受限网络下成功率明显更高，代码不用改一行。
+
+> **版本号必须写进 URL。** `refs/heads/main` 看着“永远最新”，但 lockfile 一旦
+> 记录了这个 spec 的 integrity，pnpm 不会为了同一个 spec 重新解析远端。
+> 升级 = 换成新 tag 的 URL 再装一次（见「升级」）。
+
+> **为什么不推荐 `github:` 前缀**：pnpm 解析 `github:` 依赖会调用系统 `git`；
+> Windows 上没装 Git 就会报 `git ls-remote failed`。上面的地址由 pnpm 直接
+> 下载解包，不需要 Git。
+
+### 方式三：Release 安装包（固定版本）
 
 到 [Releases](https://github.com/rans725/dsh-glass-ranswork/releases) 下载
-`dsh-glass-ranswork-1.0.1.tgz`，安装时填它的**本地路径**，或直接填资源地址：
+`dsh-glass-ranswork-1.0.2.tgz`，安装时填它的**本地路径**，或直接填资源地址：
 
 ```
-https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.1/dsh-glass-ranswork-1.0.1.tgz
+https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.2/dsh-glass-ranswork-1.0.2.tgz
 ```
 
-### 方式三：本地目录 / zip
+> 资产地址同样先经过 `github.com`。主站不通时，改用上面的 codeload 直链或 npm。
+
+### 方式四：本地目录 / zip
 
 两种来源都可以：
 
 - 仓库页 **Code → Download ZIP**（解压后是 `dsh-glass-ranswork-main/`）；
-- 或 Release 里的 `dsh-glass-ranswork-1.0.1.tgz`（解压后是 `package/`）。
+- 或 Release 里的 `dsh-glass-ranswork-1.0.2.tgz`（解压后是 `package/`）。
 
 把**含 `package.json` 的那一层目录**放到任意位置，在安装入口填它的绝对路径，例如：
 
@@ -93,6 +119,61 @@ D:\Plugins\dsh-glass-ranswork
 设置 → 插件 → 卸载。插件不会改 DSH 本体；设置文件在
 `$DSH_HOME/glass-theme.json`，壁纸在 `$DSH_HOME/glass-theme-bg.<ext>`，
 删掉即可彻底复位。
+
+## 升级
+
+先确认当前版本：**设置 → 自定义主题** 顶部有 `v1.0.2`（旧版宿主没有这行，
+可以在 profile 的 `node_modules/dsh-glass-ranswork/package.json` 里看）。
+
+### npm 装的
+
+在 profile 目录（Windows 默认 `%USERPROFILE%\.dsh\profiles\desktop`）执行：
+
+```powershell
+pnpm update dsh-glass-ranswork
+# 或显式指定版本
+pnpm add dsh-glass-ranswork@^1.0.2
+```
+
+然后重启 DSH、刷新页面。设置与壁纸不会动（它们存在 `$DSH_HOME`）。
+
+### tarball / Release 装的
+
+三步：
+
+1. 把 profile `package.json` 里的旧 spec 换成新 tag 的 URL；
+2. 删掉 `pnpm-lock.yaml` 里对应的 `dsh-glass-ranswork@...` 条目（或整份 lockfile）；
+3. `pnpm install`，重启 DSH。
+
+或者一步到位：
+
+```powershell
+pnpm add https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.2
+```
+
+### 为什么“重装一次”不升级
+
+pnpm 对 tarball 依赖记录的是 `spec + integrity + version`。spec 没变（还是
+`.../heads/main.tar.gz`）时，它认为这份依赖已经解析过，直接用 lockfile 里的
+旧包，**不会**去远端重新 HEAD。`main` 更新了、tag 打了，都和你的 lockfile 无关。
+
+只有下面两种情况会真正换包：
+
+- spec 变了（新 tag 的 URL / 新版本号）；
+- 你显式让 pnpm 重新解析（`pnpm update`、删 lockfile）。
+
+### 卡住时的自查
+
+| 现象 | 原因 | 处理 |
+| --- | --- | --- |
+| 重装后版本不变 | lockfile 钉住了旧 spec | 换成新 tag 的 URL，或 `pnpm update` |
+| `HEAD https://github.com/.../main.tar.gz ... ETIMEDOUT` | `github.com` 不通 | 改用 codeload 直链或 npm |
+| 安装返回 `changed:false`，日志只有 `fetch failed` | 旧依赖也在拉 `github.com`，一个失败整次回滚 | 先从 `package.json` 删掉旧条目再装 |
+| 设置页没有版本行 | 宿主半侧还是旧版 | 重启 DSH（浏览器半侧热更新，宿主不会） |
+
+> 安装器目前只会把 `fetch failed` 透出来，不会告诉你**是哪个 URL** 失败。
+> 遇到时先看 profile 的 `package.json` 里还有没有 `github.com/.../archive/...`
+> 的旧条目 —— 通常就是它。
 
 ## 设置
 
@@ -487,6 +568,22 @@ html[data-dsh-glass] [class*="_emptyTabHost_"] {
 
 ## 更新日志
 
+### v1.0.2（2026-10-20）
+
+安装 / 升级链路修复（对应 [issue #1](https://github.com/rans725/dsh-glass-ranswork/issues/1)）：
+
+- **文档**：删掉「重装一次即拉最新 main」。明确写出 lockfile 会钉住
+  tarball 的 integrity / version，升级必须换版本化地址；
+- **安装源**：README 改为优先 npm 与 codeload 固定 tag 直链，绕开
+  `github.com` 的 302 跳转（受限网络下最常卡住的就是这一步）；
+- **npm 发布**：去掉 `private`，补 `repository` / `publishConfig`，
+  新增 `.github/workflows/release.yml`（打 tag 自动发布 + 建 Release + 传 tgz）；
+- **版本可见**：设置页顶部显示当前加载的版本；宿主半侧新增
+  `/glass-theme/version`，静默比对 npm registry（官方 → npmmirror），
+  有新版给一行链接，检查失败什么都不显示；
+- **排错**：新增「升级」「卡住时的自查」，覆盖版本不变、ETIMEDOUT、
+  `changed:false` 三类常见现象。
+
 ### v1.0.1（2026-10-19）
 
 发送框（composer）相关的四处修复，都围绕同一类根因：`backdrop-filter`
@@ -547,8 +644,9 @@ Electron 主窗口在 Windows 上创建时**没有** `transparent` / `background
 
 插件是**两个手写的普通 JS 文件**，没有构建步骤、没有依赖：
 
-- `index.js` —— 宿主半侧（Node）：注册 `/glass-theme/settings` 与
-  `/glass-theme/background` 路由，把设置写到 `$DSH_HOME/glass-theme.json`；
+- `index.js` —— 宿主半侧（Node）：注册 `/glass-theme/settings`、
+  `/glass-theme/background` 与 `/glass-theme/version` 路由，把设置写到
+  `$DSH_HOME/glass-theme.json`；
 - `client.js` —— 浏览器半侧：`window.__ModuleLoader__.load({ id, factory })`
   形态的 bundle，`factory(require)` 里拿 React，CSS 以字符串塞进 `<style>`。
 
@@ -568,3 +666,20 @@ node --check client.js
 > 作者工作区里有一套不随包发布的回归测试（`node:test` 风格、用假 DOM 跑
 > 真实源码）；如果你想贡献，改动请保持「无依赖、自带降级」的原则，
 > 并在 PR 里说明验证方式。
+
+### 发布（维护者）
+
+1. 改 `package.json` 的 `version`；
+2. 提交后打 tag 并推送：
+
+   ```powershell
+   git tag v1.0.2
+   git push origin v1.0.2
+   ```
+
+3. `.github/workflows/release.yml` 会：校验 tag 与 `version` 一致 → 语法检查 →
+   打包 → 创建 Release 并上传 `.tgz` → `npm publish --access public --provenance`。
+
+`NPM_TOKEN`（npm 的 Automation token）是可选的：没配时流水线只跳过
+npm 发布，Release 与 `.tgz` 资产照常生成 —— 用户仍可用 codeload /
+Release 安装，只是暂时拿不到 `pnpm update` 这条升级路径。

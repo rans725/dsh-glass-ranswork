@@ -79,6 +79,9 @@ window.__ModuleLoader__.load({
     /** 宿主半侧提供的设置读写路由（见 index.js）。 */
     const API = '/glass-theme/settings';
 
+    /** 宿主半侧提供的版本 / 更新检查路由（见 index.js）。 */
+    const API_VERSION = '/glass-theme/version';
+
     /** 文案命名空间。 */
     const NS = 'settings.glass';
 
@@ -265,6 +268,8 @@ window.__ModuleLoader__.load({
       'previewOpacity.desc': '文件 diff、已编辑文件卡片、文档预览这几处的底色不透明度。它们要读代码，所以单独一档：拉高它不会把整个界面一起变实',
       'diag.title': '诊断',
       'diag.desc': '上一次绘制时浏览器实际算出的值。拖任意滑块会刷新它。targets 是命中的层数（0 表示没找到发送框区域），seat 表示是否找到 composerSeat',
+      'version.current': '已是最新',
+      'version.update': '有新版本',
       'saturate.title': '背景饱和度',
       'saturate.desc': '提高可让背后的颜色更鲜艳',
       'ambient.title': '氛围光背景',
@@ -339,6 +344,8 @@ window.__ModuleLoader__.load({
       'previewOpacity.desc': 'Opacity of file diffs, the edited-files card, and the document preview. They are meant to be read, so they get their own level: raising it does not make the rest of the UI more solid',
       'diag.title': 'Diagnostics',
       'diag.desc': 'Values the browser actually computed during the last paint. Dragging any slider refreshes them. targets is how many layers were matched (0 means the composer area was not found); seat tells whether composerSeat was found',
+      'version.current': 'Up to date',
+      'version.update': 'Update available',
       'saturate.title': 'Background saturation',
       'saturate.desc': 'Raise it to make the colors behind more vivid',
       'ambient.title': 'Ambient backdrop',
@@ -2171,6 +2178,23 @@ html[data-dsh-glass] body[data-ds-dark-theme] [class*="_emptyTabHost_"] {
   font-size: 12px;
   line-height: 18px;
 }
+/* 版本行：比 intro 更轻，只用来回答「我装的是哪一版」。 */
+.dsh-glass-version {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -8px 0 16px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  opacity: 0.8;
+}
+.dsh-glass-versionLink {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.dsh-glass-versionLink:hover { opacity: 1; }
 .dsh-glass-row {
   display: flex;
   align-items: center;
@@ -2799,6 +2823,23 @@ html[data-dsh-glass] body[data-ds-dark-theme] [class*="_emptyTabHost_"] {
       const settings = useGlassState();
       const [failed, setFailed] = React.useState(false);
 
+      // 版本 / 更新提示：宿主给了就显示；旧版宿主没有这条路由，静默不显示。
+      // 只查一次、不轮询 —— 这里的目标是「让用户知道自己装的是哪一版」，
+      // 不是做自动更新器。
+      const [build, setBuild] = React.useState(null);
+      React.useEffect(() => {
+        let alive = true;
+        fetch(API_VERSION, { cache: 'no-store' })
+          .then((response) => (response.ok ? response.json() : null))
+          .then((data) => {
+            if (alive && data !== null && typeof data.version === 'string' && data.version !== '') setBuild(data);
+          })
+          .catch(() => {});
+        return () => {
+          alive = false;
+        };
+      }, []);
+
       // ---- 背景图片（2026-10 本轮新增）----
       /** 隐藏的 <input type=file>：按钮点它，等价于系统文件选择框。 */
       const fileRef = React.useRef(null);
@@ -2879,6 +2920,30 @@ html[data-dsh-glass] body[data-ds-dark-theme] [class*="_emptyTabHost_"] {
         'div',
         { className: 'dsh-glass-page' },
         h('div', { className: 'dsh-glass-intro' }, t('intro')),
+
+        // 当前版本 + 一行更新提示。更新检查失败 / 还没发布到 npm 时只显示版本号。
+        h(
+          'div',
+          { className: 'dsh-glass-version' },
+          build === null
+            ? null
+            : [
+                h('span', { key: 'version' }, `v${build.version}`),
+                build.updateAvailable === true
+                  ? h(
+                      'a',
+                      {
+                        key: 'update',
+                        className: 'dsh-glass-versionLink',
+                        href: build.url,
+                        target: '_blank',
+                        rel: 'noreferrer',
+                      },
+                      `${t('version.update')} v${build.latest}`,
+                    )
+                  : h('span', { key: 'latest' }, t('version.current')),
+              ],
+        ),
 
         h(Row, {
           title: t('enable.title'),

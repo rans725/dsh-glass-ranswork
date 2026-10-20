@@ -1,8 +1,18 @@
 {
   "name": "dsh-glass-ranswork",
-  "version": "1.0.1",
-  "private": true,
+  "version": "1.0.2",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rans725/dsh-glass-ranswork.git"
+  },
+  "homepage": "https://github.com/rans725/dsh-glass-ranswork#readme",
+  "bugs": {
+    "url": "https://github.com/rans725/dsh-glass-ranswork/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "自定义主题：给 DeepSeek Harness Web 界面加上「80% 半透明 + 背景模糊」的毛玻璃外观，并提供完整的主题设置页（透明度 / 模糊 / 饱和度 / 氛围光 / 配色 / 自定义背景图片）。",
   "license": "MIT",
   "keywords": [
