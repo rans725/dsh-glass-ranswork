@@ -29,6 +29,10 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      # 映射到 job 级：步骤级 if 表达式能看到 job 级 env，却看不到同一
+      # 步骤自己 env: 里刚定义的值，所以必须放在 job 上。
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -70,11 +74,10 @@ jobs:
       #
       # 注意：**`if:` 里不能直接引用 secrets** —— secrets 上下文在步骤级
       # if 表达式里不可用，workflow 会在解析阶段就失败（连 job 都不创建）。
-      # 所以先把 token 映射进 job 级 env，再在 if 里判断 env 是否为空。
+      # 所以 token 映射在 job 级 env（见 jobs.publish.env），这里判断它。
       - name: Publish to npm
         if: env.NPM_TOKEN != ''
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
