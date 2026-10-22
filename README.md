@@ -14,50 +14,61 @@
 > 你的依赖不会跟着动。重装多少次都还是当初装下的那个版本。
 
 1. 打开 DSH → **设置 → 插件 → 安装插件**；
-2. 粘贴地址（三选一，按网络环境挑）：
+2. 粘贴地址（推荐第一种）：
 
-   **codeload 固定版本（推荐）**
-
-   ```
-   https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.3
-   ```
-
-   **Release 安装包（固定版本）**
+   **npm（推荐）**
 
    ```
-   https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.3/dsh-glass-ranswork-1.0.3.tgz
+   dsh-glass-ranswork
+   ```
+
+   **codeload 固定版本（不想用 npm 时）**
+
+   ```
+   https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.0
    ```
 
    **本地目录**：把仓库 zip（Code → Download ZIP）或 Release 的 `.tgz` 解压，
    填含 `package.json` 的那层目录，例如 `D:\Plugins\dsh-glass-ranswork`。
 
 3. 装完按提示**重启 DSH**，打开 **设置 → 自定义主题** 即可调外观。
-4. 设置页顶部会显示当前加载的版本号（如 `v1.0.3`）；有新版时多一行提示。
+4. 设置页顶部会显示当前加载的版本号（如 `v1.1.0`）；有新版时多一行提示。
 
 ## 安装
 
 本包是一个 **DSH bundle**（`package.json` 的 `dsh.bundle.patch` 指向
 `cordis.patch.yml`，`dsh.client` 声明浏览器半侧），不需要构建、没有依赖。
 
-### 方式一：codeload 固定发行版（推荐）
+### 方式一：npm（推荐）
 
 在 profile 目录里直接装：
 
 ```powershell
-pnpm add https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.3
+pnpm add dsh-glass-ranswork
 ```
 
-> **本包不发 npm。** 所以 `pnpm add dsh-glass-ranswork` / `npm view
-> dsh-glass-ranswork` 一律 404 —— 那是预期行为，不是发布出错了。
-> 安装地址只有下面三条（codeload / Release 资产 / 本地目录）。
+**为什么推荐 npm**：装 npm 的包，插件市场能感知到新版本并推送更新提醒。
+下面那些 URL 安装方式虽然能装，但**永远收不到更新推送** —— 市场对 URL 安装
+没有 registry 身份可比，宁可如实报「无更新」也不猜（dshmarket #768）。
 
-好处是版本可以写死在 tag 里，升级时换 tag 号即可；坏处是不能写成 `^1.0.3`
+> **从旧版 URL 方式升上来的用户**：lockfile 里记的还是 URL，改 npm 后**仍然收不到推送**。
+> 需要重装一次：`pnpm remove dsh-glass-ranswork && pnpm add dsh-glass-ranswork`
+
+好处是版本可以写范围（`^1.1.0`），升级由 pnpm 和市场的更新提醒共同覆盖。
+
+### 方式二：codeload 固定发行版（不想用 npm 时）
+
+```powershell
+pnpm add https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.0
+```
+
+好处是版本可以写死在 tag 里，升级时换 tag 号即可；坏处是不能写成 `^1.1.0`
 这种范围（pnpm 无从解析），所以「有新版本」的提示靠设置页顶部那一行。
 
-### 方式二：codeload 直链（固定版本，不需要 Git）
+### 方式三：codeload 直链（固定版本，不需要 Git）
 
 ```
-https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.3
+https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.0
 ```
 
 为什么不写 `https://github.com/.../archive/...`：
@@ -74,23 +85,23 @@ https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.3
 > Windows 上没装 Git 就会报 `git ls-remote failed`。上面的地址由 pnpm 直接
 > 下载解包，不需要 Git。
 
-### 方式三：Release 安装包（固定版本）
+### 方式四：Release 安装包（固定版本）
 
 到 [Releases](https://github.com/rans725/dsh-glass-ranswork/releases) 下载
-`dsh-glass-ranswork-1.0.3.tgz`，安装时填它的**本地路径**，或直接填资源地址：
+`dsh-glass-ranswork-1.1.0.tgz`，安装时填它的**本地路径**，或直接填资源地址：
 
 ```
-https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.0.3/dsh-glass-ranswork-1.0.3.tgz
+https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.1.0/dsh-glass-ranswork-1.1.0.tgz
 ```
 
 > 资产地址同样先经过 `github.com`。主站不通时，改用上面的 codeload 直链。
 
-### 方式四：本地目录 / zip
+### 方式五：本地目录 / zip
 
 两种来源都可以：
 
 - 仓库页 **Code → Download ZIP**（解压后是 `dsh-glass-ranswork-main/`）；
-- 或 Release 里的 `dsh-glass-ranswork-1.0.3.tgz`（解压后是 `package/`）。
+- 或 Release 里的 `dsh-glass-ranswork-1.1.0.tgz`（解压后是 `package/`）。
 
 把**含 `package.json` 的那一层目录**放到任意位置，在安装入口填它的绝对路径，例如：
 
@@ -116,12 +127,12 @@ D:\Plugins\dsh-glass-ranswork
 
 ## 升级
 
-先确认当前版本：**设置 → 自定义主题** 顶部有 `v1.0.3`（旧版宿主没有这行，
+先确认当前版本：**设置 → 自定义主题** 顶部有 `v1.1.0`（旧版宿主没有这行，
 可以在 profile 的 `node_modules/dsh-glass-ranswork/package.json` 里看）。
 
 ### 怎么知道有新版本
 
-设置页顶部那行：`v1.0.3` 后面如果出现「**有新版本 v1.0.4**」的链接，点它去 Release。
+设置页顶部那行：`v1.1.0` 后面如果出现「**有新版本 v1.2.0**」的链接，点它去 Release。
 宿主半侧每 6 小时静默问一次 `api.github.com` 的最新 Release（失败 10 分钟后重试，
 全程不打扰；断网时只显示版本号）。
 
@@ -136,7 +147,7 @@ D:\Plugins\dsh-glass-ranswork
 或者一步到位：
 
 ```powershell
-pnpm add https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.0.3
+pnpm add https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.0
 ```
 
 ### 为什么“重装一次”不升级
@@ -556,6 +567,25 @@ html[data-dsh-glass] [class*="_emptyTabHost_"] {
 
 ## 更新日志
 
+### v1.1.0（2026-10-23）
+
+**发布到 npm，插件市场可以推送更新了。**
+
+v1.0.3 把更新检查改问 GitHub Releases，解决了「查 npm 永远 404」的问题，
+但只覆盖了**插件自己的**设置页提示。插件市场那一侧仍然无法推送 ——
+市场对 URL 安装没有 registry 身份可比，只能如实报「无更新」。
+
+- **npm 发布**：`pnpm add dsh-glass-ranswork` 现在可用，市场能感知新版本
+- **README**：中英安装段改为以 npm 为首选，URL 方式降为备选并注明不再推送
+- **`version.json`**：新增 `npm` 字段，供自建更新检查在 GitHub 之外有第二来源
+- **自建更新检查保留**：`index.js` 的 GitHub Releases 检查继续工作，
+  与市场推送互为补充（一个查 GitHub，一个查 npm registry）
+
+> **老用户需重装一次**：之前用 URL 装的，lockfile 里记的还是 URL，
+> 改 npm 后仍然收不到推送。`pnpm remove dsh-glass-ranswork && pnpm add dsh-glass-ranswork`
+
+功能代码（`client.js` / `index.js` 渲染部分）与 v1.0.3 一致，本版只改分发与文档。
+
 ### v1.0.3（2026-10-20）
 
 **更新检查换了数据源：不再问 npm，改问 GitHub Releases。**
@@ -676,8 +706,8 @@ node --check client.js
 2. 提交后打 tag 并推送：
 
    ```powershell
-   git tag v1.0.3
-   git push origin v1.0.3
+   git tag v1.1.0
+   git push origin v1.1.0
    ```
 
 3. `.github/workflows/release.yml` 会：校验 tag 与 `version` 一致 → 语法检查 →

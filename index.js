@@ -62,10 +62,10 @@ const BACKGROUND_PATH = '/glass-theme/background';
 /** 版本 / 更新检查路由（设置页顶部显示当前版本，并静默比对一次最新版）。 */
 const VERSION_PATH = '/glass-theme/version';
 
-/** npm 包名（`package.json` 与市场身份用；更新检查已不再问 registry，见下）。 */
+/** npm 包名（`package.json` 与市场身份用；更新检查的兜底源也问它）。 */
 const PACKAGE_NAME = 'dsh-glass-ranswork';
 
-/** GitHub 仓库（`owner/name`）—— 更新检查的唯一来源。 */
+/** GitHub 仓库（`owner/name`）—— 更新检查的主来源。 */
 const UPDATE_REPO = 'rans725/dsh-glass-ranswork';
 
 /** 更新检查结果的缓存时长：6 小时。设置页不是仪表盘，不必每次打开都问。 */
@@ -80,16 +80,20 @@ const UPDATE_TIMEOUT = 2500;
 /**
  * 依次尝试的更新检查地址。
  *
- * 为什么问 GitHub Releases 而不是 npm：本包**没有发布到 npm**（作者不走 npm 账号），
- * registry 上永远是 404；GitHub 的 tag / Release 才是真正发布的那个地方。
- * 注意 api.github.com 的匿名限速是 60 次/小时/IP，所以缓存必须留着（UPDATE_TTL）。
+ * 从 v1.1.0 起本包**发布到 npm** 了，所以第二个源改成 npm registry：
  *
- * 官方优先；国内网络下 `latest-1` 这个数字镜像通常更快。两个都失败就当作
- * 「不知道」，绝不把网络错误弹给用户。
+ * - `github`：GitHub Releases 的 `tag_name`。官方源，但 api.github.com 匿名
+ *   限速 60 次/小时/IP，缓存（UPDATE_TTL）必须留着。
+ * - `npm`：registry 的 `dist-tags.latest`。**这个源比旧的静态镜像可靠得多** ——
+ *   旧的 `github.com/.../releases/latest/download/version.json` 走 github.com
+ *   主站，受限网络下会整个超时（实测 21s 且 http=000），等于兜底形同虚设。
+ *   registry.npmjs.org 直连稳定，而且用户装了包就说明它可达。
+ *
+ * 两个都失败就当作「不知道」，绝不把网络错误弹给用户。
  */
 const UPDATE_SOURCES = [
   { label: 'github', url: `https://api.github.com/repos/${UPDATE_REPO}/releases/latest` },
-  { label: 'mirror', url: `https://github.com/${UPDATE_REPO}/releases/latest/download/version.json` },
+  { label: 'npm', url: `https://registry.npmjs.org/${PACKAGE_NAME}/latest` },
 ];
 
 /**
@@ -532,8 +536,9 @@ export function apply(ctx) {
   /**
    * 问一次远端；全部失败返回 ''（网络受限是常态，不当作错误上报）。
    *
-   * 按 `UPDATE_SOURCES` 顺序回退：GitHub API 优先，不通时用 GitHub 自己的
-   * `releases/latest/download/...` 静态文件兜底（不占 API 限速）。
+   * 按 `UPDATE_SOURCES` 顺序回退：GitHub API 优先（不占 npm 的请求，
+   * 且在还没发 npm 的旧版本上也能用），不通时用 npm registry 的
+   * `dist-tags.latest` 兜底。
    */
   const fetchLatest = async () => {
     if (typeof fetch !== 'function') return '';
