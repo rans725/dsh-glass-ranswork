@@ -25,14 +25,14 @@
    **codeload 固定版本（不想用 npm 时）**
 
    ```
-   https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.0
+   https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.1
    ```
 
    **本地目录**：把仓库 zip（Code → Download ZIP）或 Release 的 `.tgz` 解压，
    填含 `package.json` 的那层目录，例如 `D:\Plugins\dsh-glass-ranswork`。
 
 3. 装完按提示**重启 DSH**，打开 **设置 → 自定义主题** 即可调外观。
-4. 设置页顶部会显示当前加载的版本号（如 `v1.1.0`）；有新版时多一行提示。
+4. 设置页顶部会显示当前加载的版本号（如 `v1.1.1`）；有新版时多一行提示。
 
 ## 安装
 
@@ -54,21 +54,21 @@ pnpm add dsh-glass-ranswork
 > **从旧版 URL 方式升上来的用户**：lockfile 里记的还是 URL，改 npm 后**仍然收不到推送**。
 > 需要重装一次：`pnpm remove dsh-glass-ranswork && pnpm add dsh-glass-ranswork`
 
-好处是版本可以写范围（`^1.1.0`），升级由 pnpm 和市场的更新提醒共同覆盖。
+好处是版本可以写范围（`^1.1.1`），升级由 pnpm 和市场的更新提醒共同覆盖。
 
 ### 方式二：codeload 固定发行版（不想用 npm 时）
 
 ```powershell
-pnpm add https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.0
+pnpm add https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.1
 ```
 
-好处是版本可以写死在 tag 里，升级时换 tag 号即可；坏处是不能写成 `^1.1.0`
+好处是版本可以写死在 tag 里，升级时换 tag 号即可；坏处是不能写成 `^1.1.1`
 这种范围（pnpm 无从解析），所以「有新版本」的提示靠设置页顶部那一行。
 
 ### 方式三：codeload 直链（固定版本，不需要 Git）
 
 ```
-https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.0
+https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.1
 ```
 
 为什么不写 `https://github.com/.../archive/...`：
@@ -88,10 +88,10 @@ https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.0
 ### 方式四：Release 安装包（固定版本）
 
 到 [Releases](https://github.com/rans725/dsh-glass-ranswork/releases) 下载
-`dsh-glass-ranswork-1.1.0.tgz`，安装时填它的**本地路径**，或直接填资源地址：
+`dsh-glass-ranswork-1.1.1.tgz`，安装时填它的**本地路径**，或直接填资源地址：
 
 ```
-https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.1.0/dsh-glass-ranswork-1.1.0.tgz
+https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.1.1/dsh-glass-ranswork-1.1.1.tgz
 ```
 
 > 资产地址同样先经过 `github.com`。主站不通时，改用上面的 codeload 直链。
@@ -101,7 +101,7 @@ https://github.com/rans725/dsh-glass-ranswork/releases/download/v1.1.0/dsh-glass
 两种来源都可以：
 
 - 仓库页 **Code → Download ZIP**（解压后是 `dsh-glass-ranswork-main/`）；
-- 或 Release 里的 `dsh-glass-ranswork-1.1.0.tgz`（解压后是 `package/`）。
+- 或 Release 里的 `dsh-glass-ranswork-1.1.1.tgz`（解压后是 `package/`）。
 
 把**含 `package.json` 的那一层目录**放到任意位置，在安装入口填它的绝对路径，例如：
 
@@ -114,10 +114,13 @@ D:\Plugins\dsh-glass-ranswork
 
 ### 兼容性
 
-- 在 **DSH 0.2.0-rc.2**（Windows 桌面版）上开发与验证；
+- 在 **DSH 0.2.1-rc.3**（Windows 桌面版）上开发与验证（v1.1.1 起）；
 - 插件只用到公开客户端服务（`slots` / `locale` / `theme`）和宿主 `webServer`，
   没有私有 API、没有原生依赖；DSH 大版本升级后如果主题 token 改名，
   退化结果是「某块颜色/模糊不生效」，不会崩。
+- 每次宿主升级都会重编译客户端，**CSS Modules 哈希会全变**。插件只在
+  纯装饰性的卡片前缀上依赖哈希；凡是「排除某个结构容器」的规则一律用
+  稳定 data 属性或结构判据（详细的坑见 v1.1.1 更新日志）。
 
 ### 卸载
 
@@ -127,12 +130,12 @@ D:\Plugins\dsh-glass-ranswork
 
 ## 升级
 
-先确认当前版本：**设置 → 自定义主题** 顶部有 `v1.1.0`（旧版宿主没有这行，
+先确认当前版本：**设置 → 自定义主题** 顶部有 `v1.1.1`（旧版宿主没有这行，
 可以在 profile 的 `node_modules/dsh-glass-ranswork/package.json` 里看）。
 
 ### 怎么知道有新版本
 
-设置页顶部那行：`v1.1.0` 后面如果出现「**有新版本 v1.2.0**」的链接，点它去 Release。
+设置页顶部那行：`v1.1.1` 后面如果出现「**有新版本 v1.2.0**」的链接，点它去 Release。
 宿主半侧每 6 小时静默问一次 `api.github.com` 的最新 Release（失败 10 分钟后重试，
 全程不打扰；断网时只显示版本号）。
 
@@ -147,7 +150,7 @@ D:\Plugins\dsh-glass-ranswork
 或者一步到位：
 
 ```powershell
-pnpm add https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.0
+pnpm add https://codeload.github.com/rans725/dsh-glass-ranswork/tar.gz/refs/tags/v1.1.1
 ```
 
 ### 为什么“重装一次”不升级
@@ -567,6 +570,22 @@ html[data-dsh-glass] [class*="_emptyTabHost_"] {
 
 ## 更新日志
 
+### v1.1.1（2026-10-25）
+
+**修 0.2.1-rc.3 的「右半边毛玻璃遮挡」。**
+
+rc.3 重编译后右栏面板的 CSS Modules 哈希从 OUqwTW 变成 acoR2W，
+插件里那条哈希排除失效；右栏的空壳容器（绝对定位、锚右缘、宽度 45%）
+被 4b 段挂上 backdrop-filter，于是整片右半边被糊住。
+
+- 4b 段改为**跨构建稳定**的排除：`[data-sidebar-right-panel]` 及其后代，
+  外加 `:not(:has([data-dockkit-surface]))`（装着 dockkit 的容器一律不是浮层）
+- 4b 里那条被哈希排除的写法保留作历史说明，并写清「别再用哈希做排除」
+- 4c 段卡片前缀更新到 rc.3 实测值（VBK9GG / Zf6DNq / Nksazq / wnLwla /
+  EEnIVa / qpBK2a），旧前缀保留兼容旧客户端
+- 新增一条守卫：任何 `[class*="_panel"]` 规则改动后，用工作区里的无头浏览器
+  脚本复核「面积 >5% 的元素不该有 backdrop-filter」
+
 ### v1.1.0（2026-10-23）
 
 **发布到 npm，插件市场可以推送更新了。**
@@ -672,6 +691,15 @@ Electron 主窗口在 Windows 上创建时**没有** `transparent` / `background
   `[class*="_float_"]` 与官方 `[role="dialog"][aria-modal="true"]`
   （宿主 primitives 导出的 `modalSelector`）。前者带一长串 `:not()` 排除，
   原因见上文「实现要点」第 4 条。
+- `[data-sidebar-right-panel]` — 右栏面板的容器（0.2.1-rc.3 起）。**不要用
+  它的哈希类名做排除**：rc.3 就把 `OUqwTW_panel` 重编译成了 `acoR2W_panel`，
+  哈希排除失效导致整片右半边被挂上 backdrop-filter（v1.1.1 修的就是这个）。
+  同理，判断「是否浮层」用 `:not(:has([data-dockkit-surface]))` 这种结构判据，
+  永远不要绑哈希。
+- `[data-composer-card]` — composer 输入卡片（见 4c 段）。
+- 4c 段按「卡片」列出的哈希前缀（`VBK9GG_` / `Zf6DNq_` / `Nksazq_` 等）
+  是**唯一保留哈希前缀**的地方：它们是纯装饰性增强，失效只是「那张卡没模糊」；
+  旧前缀会一起留着以兼容旧客户端。
 
 ## 开发与验证
 
@@ -706,8 +734,8 @@ node --check client.js
 2. 提交后打 tag 并推送：
 
    ```powershell
-   git tag v1.1.0
-   git push origin v1.1.0
+   git tag v1.1.1
+   git push origin v1.1.1
    ```
 
 3. `.github/workflows/release.yml` 会：校验 tag 与 `version` 一致 → 语法检查 →

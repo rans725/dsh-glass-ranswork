@@ -1651,18 +1651,32 @@ html[data-dsh-glass] [class*="_emptyTabHost_"] {
    被保留下来的才是真浮层：wCInkW_panel（设置页）/ _1Wt2eq_panel（缩放条）/
    _VovcG_panel（字体提示）/ EBLgjq_panel（模型选择）等。
 
-   【为什么 OUqwTW_panel 必须排除（最重要的一条）】
-   它是右栏 dockkit 的**定位容器**（position:absolute，--dsh-dockkit-*），
-   里面装着 position:fixed 的 _float_ 浮窗。CSS 规范
-   （Filter Effects 2 §2.1）明确：backdrop-filter 非 none 的元素会**同时
-   建立包含块**（"results in the creation of both a stacking context and a
-   Containing Block for absolute and fixed position descendants"）。
-   也就是说，一旦给 OUqwTW_panel 挂上 backdrop-filter，它内部所有 fixed 的
-   dockkit 浮窗都会**改以这个容器为包含块**，整块跑偏 —— 这正是宿主在
-   MenuSurface 注释里专门避开的坑（"keeps nested menus and fixed overlays
-   free of an ancestor backdrop root or a new fixed-position containing
-   block"）。所以必须用 :not([class*="OUqwTW_panel"]) 把它排除。
-   （这一条同样排掉了 OUqwTW_panelBody，因为它是子串。）
+   【右栏容器必须整棵子树排掉（最重要的一条，2026-10-25 重写）】
+   右栏面板（@deepseek-ai/dsh-client-ui-sidebar-right）的**定位容器**是
+   position:absolute、锚在 frame 右缘、宽度 = 右栏正常宽度（默认 45%，
+   正好右半边）的一层空壳；没开任何面板时它也在 DOM 里，只是背景透明、
+   pointer-events:none，所以本来"看不见"。里面再装 dockkit 的
+   [data-dockkit-surface] 与 position:fixed 的 _float_ 浮窗。
+
+   两个理由都必须排除整棵子树：
+     1. 视觉：backdrop-filter 会把"背后"的像素模糊后画出来；容器本身
+        背景 transparent 也照样画 —— 于是一整片右半边的毛玻璃凭空出现，
+        把正文糊住。用户报的「右半边毛玻璃遮挡、看不清页面」就是它。
+     2. 几何：Filter Effects 2 §2.1 明确 backdrop-filter 非 none 的元素会
+        **同时建立包含块**（"...both a stacking context and a Containing
+        Block for absolute and fixed position descendants"）。挂在容器上，
+        内部所有 fixed 的 dockkit 浮窗会改以它为包含块而整块跑偏 ——
+        正是宿主在 MenuSurface 注释里专门避开的坑。
+
+   【为什么不再用哈希 :not（RC.3 的教训，别改回去）】
+   RC.3 之前的写法是 :not([class*="OUqwTW_panel"]) —— 哈希是按构建生成的，
+   0.2.1-rc.3 重编译后同一个组件的类名变成 acoR2W_panel，排除了个寂寞，
+   于是这个 bug 直接上线。现在改成两条**跨构建稳定**的判据：
+     - [data-sidebar-right-panel]（及其后代）：宿主自己写在右栏面板上的
+       稳定 data 属性，和 [data-composer-card] 同一类官方钩子；
+     - :not(:has([data-dockkit-surface]))：任何"装着 dockkit 的容器"
+       一律不是浮层（这条不依赖任何具体类名，宿主再怎么改名也躲不掉）。
+   两条同时保留：旧版/新版、属性在/不在，都能兜住。
 
    【为什么不用 min() 夹半径】
    上一版写了 blur(min(var(--dsh-glass-blur), 56px))。min() 在 blur() 里
@@ -1676,16 +1690,15 @@ html[data-dsh-glass] [class*="_emptyTabHost_"] {
    表格单元格。在 token 层挂模糊会把它们一起变成毛玻璃（误伤）。
 
    【已知的重复（可接受）】
-   Xt1eiG_panel / v1kfCW_panel / _2WTFBq_panel / zf92ZW_panel / CVUQCW_panel /
-   EBLgjq_panel 这 6 个本来就用 :before 或自身挂了 --dsw-menu-backdrop-filter。
+   宿主有些 _panel 本来就用 :before 或自身挂了 --dsw-menu-backdrop-filter。
    它们也会被下面的选择器命中，等于同一个模糊值挂两遍 —— 值相同，
    视觉无差异，只是多一层合成。要用 CSS 区分"已有模糊"做不到，
-   所以接受这点冗余，而不是把 6 个哈希写死进选择器（升级就失效）。 */
+   所以接受这点冗余，而不是把具体哈希写死进选择器（升级就失效）。 */
 
 html[data-dsh-glass] .dsh-arch-panel,
 html[data-dsh-glass] .dsh-cost-panel,
 html[data-dsh-glass] .dsh-pet-dash-panel,
-html[data-dsh-glass] [class*="_panel"]:not([class*="OUqwTW_panel"]):not([class*="_panelRow"]):not([class*="_panelActive"]):not([class*="_panelButton"]):not([class*="_panelHint"]):not([class*="_panelGlyph"]):not([class*="_panelIcon"]):not([class*="_panelList"]):not([class*="_panelTitle"]):not([class*="_panelHeader"]):not([class*="_panelCompact"]),
+html[data-dsh-glass] [class*="_panel"]:not([data-sidebar-right-panel]):not([data-sidebar-right-panel] *):not(:has([data-dockkit-surface])):not([class*="_panelRow"]):not([class*="_panelActive"]):not([class*="_panelButton"]):not([class*="_panelHint"]):not([class*="_panelGlyph"]):not([class*="_panelIcon"]):not([class*="_panelList"]):not([class*="_panelTitle"]):not([class*="_panelHeader"]):not([class*="_panelCompact"]),
 html[data-dsh-glass] [class*="_dialog"]:not([class*="_dialogButton"]),
 html[data-dsh-glass] [class*="_float_"],
 html[data-dsh-glass] [role="dialog"][aria-modal="true"] {
@@ -1698,36 +1711,38 @@ html[data-dsh-glass] [role="dialog"][aria-modal="true"] {
    【为什么单独一段】
    4b 段按「浮层类名」匹配，覆盖不到这两处：
      - **发送框**（composer 输入卡片）不是浮层，它是嵌在对话流里的卡片，
-       类名 .RlGAzG_card（ui-conversation 的 InputBar.module.css），
-       底色 --dsw-specific-input-major，**没有** backdrop-filter。
-     - **任务看板 / 任务面板**（EBLgjq_panel，experimental-agent-team）
-       面板本体已由 4b 段覆盖，但它内部的卡片 EBLgjq_task / EBLgjq_member
+       类名 .GRgSLq_card（ui-conversation 的 InputBar.module.css；RC.3 之前
+       叫 .RlGAzG_card），底色 --dsw-specific-input-major，**没有**
+       backdrop-filter。
+     - **任务看板 / 任务面板**（experimental-agent-team）
+       面板本体已由 4b 段覆盖，但它内部的卡片 _task / _member
        各自还有一层 --dsw-alias-bg-layer-2 底色 —— 半透明叠半透明，
        字会发灰。
    这两处都是「要读字」的地方，而且用户会长时间盯着（输入框、任务进度），
    所以它们跟随**面板不透明度**这一档，而不是表面档。
 
-   【为什么发送框用 [data-composer-card] 而不是 .RlGAzG_card】
-   哈希 RlGAzG 随构建变；而 data-composer-card 是宿主自己写在卡片上的
-   **稳定 data 属性**，宿主内部多处拿它做锚点（agent-preset 的提示定位、
-   input-trigger 的点击穿透判定、message-feedback 的 toast 挂载）——
-   官方自己依赖它，所以比哈希可靠得多。实测（asar 扫描）：
-   ui-conversation 里 "data-composer-card": true 正是挂在
+   【为什么发送框用 [data-composer-card] 而不是哈希类名】
+   哈希随构建变（RC.3 就从 RlGAzG 变成了 GRgSLq）；而 data-composer-card
+   是宿主自己写在卡片上的**稳定 data 属性**，宿主内部多处拿它做锚点
+   （agent-preset 的提示定位、input-trigger 的点击穿透判定、
+   message-feedback 的 toast 挂载）—— 官方自己依赖它，所以比哈希可靠得多。
+   实测（asar 扫描）：ui-conversation 里 "data-composer-card": true 正是挂在
    clsx(card, workspaceTrigger && cardWorkspaceTrigger) 那个 div 上。
 
    【为什么发送框挂模糊不会出问题】
    backdrop-filter 会建立 fixed 后代的包含块（见 4b 段的说明）。
    但 composer 卡片内部**没有 position:fixed 的元素**（已扫
    ui-input-trigger / ui-conversation / ui-chat 三个 bundle 的全部
-   position:fixed 规则，只有 Xt1eiG_panel / _2WTFBq_panel 两个弹层，
-   它们是 composer 的**兄弟**、不是子节点，且自身 portal 到 body）。
+   position:fixed 规则，只有两个弹层，它们是 composer 的**兄弟**、
+   不是子节点，且自身 portal 到 body）。
    所以给卡片挂模糊不会挪动任何浮层。
 
-   【为什么任务卡片用 .EBLgjq_ 前缀而不是 [class*="_task"]】
+   【为什么任务卡片用 .VBK9GG_ 前缀而不是 [class*="_task"]】
    [class*="_task"] 会命中 q7hbua_rowTask（下拉菜单里的一行）和
-   Dc7zOa_crumbSubagent 之类的无关项。这里点名 EBLgjq_ 这个
+   Dc7zOa_crumbSubagent 之类的无关项。这里点名 VBK9GG_ 这个
    实验性任务看板的局部名前缀，范围精确。它属于 experimental 包，
    万一将来移除，退化结果只是「任务卡片没有模糊」，不影响其他样式。
+   （RC.3 之前这个前缀叫 EBLgjq，已随构建失效；旧名保留是为了兼容旧客户端。）
 
    【为什么不挂到 --dsw-specific-input-major 这个 token 上】
    实测它有 13 个消费点，包括 **ImageLightbox 的 .image 与 .close**
@@ -1738,13 +1753,15 @@ html[data-dsh-glass] [role="dialog"][aria-modal="true"] {
    它们和发送框同属 composer 区域、同一个 --dsw-specific-input-major
    底色，视觉上是一组「输入区卡片」。只糊发送框、不糊旁边这几张，
    会显得一半糊一半不糊：
-     - j_8BDW_card   → ui-approval 的审批卡（composer-side-clearance 对齐）
-     - P2izSq_card / mAtvLq_card → ui-user-questions 的提问卡
-     - GjTS2W_card   → ui-attachment 的文件卡（--dsw-specific-input-major,transparent）
-     - KrzJGG_card   → ui-settings-account 的账号提示卡（同一底色）
+     - Zf6DNq_card   → ui-approval 的审批卡（composer-side-clearance 对齐）
+     - Nksazq_card / wnLwla_card → ui-user-questions 的提问卡
+     - EEnIVa_card   → ui-attachment 的文件卡（--dsw-specific-input-major,transparent）
+     - qpBK2a_card   → ui-settings-account 的账号提示卡（同一底色）
+   （以上是 0.2.1-rc.3 实测的新哈希；列表里同时保留 RC.3 之前的旧前缀
+   j_8BDW / P2izSq / mAtvLq / GjTS2W / KrzJGG，旧客户端上仍然生效。）
    它们的哈希前缀各不相同，逐个写死等于给自己埋升级雷；改用
    「[class*="_card"] + 同一底色」是做不到的（CSS 无法按背景值选元素），
-   所以这里点名这 5 个已知前缀。将来新增同类卡片时，
+   所以这里点名已知前缀。将来新增同类卡片时，
    退化结果只是「那张卡没模糊」，不会影响已覆盖的。
 
    【2026-10 改法：同样是「图层式」，因为这里正是闪烁的现场】
@@ -1758,6 +1775,13 @@ html[data-dsh-glass] [role="dialog"][aria-modal="true"] {
    （会顶掉它自己的 fixed）。所以这个列表里只放"静态定位的卡片"。 */
 
 html[data-dsh-glass] [data-composer-card],
+html[data-dsh-glass] [class*="VBK9GG_task"],
+html[data-dsh-glass] [class*="VBK9GG_member"],
+html[data-dsh-glass] [class*="Zf6DNq_card"],
+html[data-dsh-glass] [class*="Nksazq_card"],
+html[data-dsh-glass] [class*="wnLwla_card"],
+html[data-dsh-glass] [class*="EEnIVa_card"],
+html[data-dsh-glass] [class*="qpBK2a_card"],
 html[data-dsh-glass] [class*="EBLgjq_task"],
 html[data-dsh-glass] [class*="EBLgjq_member"],
 html[data-dsh-glass] [class*="j_8BDW_card"],
@@ -1769,6 +1793,13 @@ html[data-dsh-glass] [class*="KrzJGG_card"] {
   position: relative;
 }
 
+html[data-dsh-glass] [class*="VBK9GG_task"]::before,
+html[data-dsh-glass] [class*="VBK9GG_member"]::before,
+html[data-dsh-glass] [class*="Zf6DNq_card"]::before,
+html[data-dsh-glass] [class*="Nksazq_card"]::before,
+html[data-dsh-glass] [class*="wnLwla_card"]::before,
+html[data-dsh-glass] [class*="EEnIVa_card"]::before,
+html[data-dsh-glass] [class*="qpBK2a_card"]::before,
 html[data-dsh-glass] [class*="EBLgjq_task"]::before,
 html[data-dsh-glass] [class*="EBLgjq_member"]::before,
 html[data-dsh-glass] [class*="j_8BDW_card"]::before,
